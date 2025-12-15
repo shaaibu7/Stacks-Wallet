@@ -1,5 +1,4 @@
 ;; This contract implements the SIP-010 community-standard Fungible Token trait.
-(impl-trait .sip-010-trait.sip-010-trait)
 
 ;; Define the FT, with no maximum supply
 (define-fungible-token clarity-coin)
@@ -54,7 +53,7 @@
         (ok (print {
               notification: "token-metadata-update",
               payload: {
-                contract-id: current-contract,
+                contract-id: CONTRACT_OWNER,
                 token-class: "ft"
               }
             })
