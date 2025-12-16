@@ -8,7 +8,9 @@
     "test": "vitest run",
     "test:report": "vitest run -- --coverage --costs",
     "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
-    "deploy": "tsx scripts/deploy.ts"
+    "deploy": "tsx scripts/deploy.ts",
+    "interact": "tsx scripts/interact.ts",
+    "interact-simple": "tsx scripts/interact-simple.ts"
   },
   "author": "",
   "license": "ISC",
