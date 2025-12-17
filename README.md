@@ -190,6 +190,33 @@ All scripts live in `contracts/package.json`:
 
 ---
 
+## Frontend (React + Vite)
+
+A lightweight UI is available under `frontend/` to query your deployed SIP‑010 token (read-only: name, total supply, balances).
+
+Setup and run:
+
+```bash
+cd frontend
+npm install          # already done once after scaffolding
+npm run dev          # start Vite dev server
+```
+
+Configure via environment variables (copy `frontend/env.example` to `frontend/.env`):
+
+- `VITE_STACKS_NETWORK` – `testnet` (default) or `mainnet`
+- `VITE_STACKS_API_URL` – optional Hiro API URL override (defaults to testnet/mainnet)
+- `VITE_CONTRACT_ADDRESS` – your deployed contract address (e.g., deployer STx…)
+- `VITE_CONTRACT_NAME` – deployed contract name (e.g., `token-contract` or timestamped variant)
+
+The UI lets you:
+- Load token metadata (`get-name`) and total supply (`get-total-supply`).
+- Query balances (`get-balance`) for a provided principal.
+
+No private keys are required; calls are read-only.
+
+---
+
 ## License
 
 This project is licensed under the terms specified in `LICENSE`.
