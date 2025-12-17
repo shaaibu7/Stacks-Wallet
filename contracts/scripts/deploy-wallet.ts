@@ -39,7 +39,7 @@ async function deployContract(contractFileName: string, contractName: string) {
         network,
         anchorMode: AnchorMode.Any,
         clarityVersion: ClarityVersion.Clarity3,
-        fee: 200000, // Higher fee for larger contract
+        fee: NETWORK_ENV === 'mainnet' ? 300000 : 200000, // Reasonable fee for mainnet (0.3 STX)
         postConditionMode: 0x01,
     };
 
@@ -52,6 +52,11 @@ async function deployContract(contractFileName: string, contractName: string) {
 
         if ('error' in broadcastResponse) {
             console.error('❌ Deployment failed:', broadcastResponse.error);
+            console.error('💡 Common causes:');
+            console.error('   - Insufficient STX balance for fees');
+            console.error('   - Contract name already exists');
+            console.error('   - Network connectivity issues');
+            console.error('   - Invalid contract syntax');
             throw new Error(broadcastResponse.error);
         } else {
             console.log('\n✅ Contract deployed successfully!');
@@ -76,7 +81,9 @@ async function deployWalletSystem() {
         // Deploy WalletX contract directly
         console.log("1️⃣ Deploying WalletX contract...");
         const timestamp = Date.now();
-        const walletContractName = `wallet-x-${timestamp}`;
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const walletContractName = `wallet-x-${timestamp}-${randomSuffix}`;
+        console.log(`📝 Contract name: ${walletContractName}`);
         const walletTxId = await deployContract('wallet-x.clar', walletContractName);
         
         console.log(`\n🎉 WalletX contract deployed successfully!`);
