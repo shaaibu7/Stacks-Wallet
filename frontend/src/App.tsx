@@ -134,6 +134,13 @@ function App() {
     }
   };
 
+  const clearResults = () => {
+    setTokenName(null);
+    setTotalSupply(null);
+    setBalance(null);
+    setError(null);
+  };
+
   return (
     <div className="page">
       <header className="hero">
@@ -188,6 +195,9 @@ function App() {
           </button>
           <button onClick={loadBalance} disabled={loading}>
             {loading ? "Loading..." : "Get balance"}
+          </button>
+          <button onClick={clearResults} disabled={loading}>
+            Clear results
           </button>
         </div>
         {error && <div className="error">{error}</div>}
