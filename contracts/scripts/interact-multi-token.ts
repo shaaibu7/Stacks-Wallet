@@ -17,7 +17,8 @@ import {
   noneCV, 
   bufferCV, 
   boolCV,
-  callReadOnlyFunction
+  fetchCallReadOnlyFunction,
+  cvToJSON
 } from '@stacks/transactions';
 import { StacksNetwork } from '@stacks/network';
 import { readFileSync } from 'fs';
@@ -185,8 +186,8 @@ export async function getBalance(owner: string, tokenId: number) {
     senderAddress: contractAddress,
   };
 
-  const result = await callReadOnlyFunction(txOptions);
-  console.log('Balance:', result);
+  const result = await fetchCallReadOnlyFunction(txOptions);
+  console.log('Balance:', cvToJSON(result));
   return result;
 }
 
@@ -200,8 +201,8 @@ export async function getTotalSupply(tokenId: number) {
     senderAddress: contractAddress,
   };
 
-  const result = await callReadOnlyFunction(txOptions);
-  console.log('Total Supply:', result);
+  const result = await fetchCallReadOnlyFunction(txOptions);
+  console.log('Total Supply:', cvToJSON(result));
   return result;
 }
 
@@ -215,8 +216,8 @@ export async function getTokenUri(tokenId: number) {
     senderAddress: contractAddress,
   };
 
-  const result = await callReadOnlyFunction(txOptions);
-  console.log('Token URI:', result);
+  const result = await fetchCallReadOnlyFunction(txOptions);
+  console.log('Token URI:', cvToJSON(result));
   return result;
 }
 
@@ -233,8 +234,8 @@ export async function isApprovedForAll(owner: string, operator: string) {
     senderAddress: contractAddress,
   };
 
-  const result = await callReadOnlyFunction(txOptions);
-  console.log('Is Approved For All:', result);
+  const result = await fetchCallReadOnlyFunction(txOptions);
+  console.log('Is Approved For All:', cvToJSON(result));
   return result;
 }
 
