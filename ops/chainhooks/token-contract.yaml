@@ -1,0 +1,22 @@
+name: token-contract-mint-transfer
+chain: stacks
+network: testnet
+
+# Adjust this to your deployed contract address + name (timestamped if applicable)
+filters:
+  - contract_call:
+      contract_identifier: "<CONTRACT_ADDRESS>.token-contract"
+      function_name: "mint"
+  - contract_call:
+      contract_identifier: "<CONTRACT_ADDRESS>.token-contract"
+      function_name: "transfer"
+
+delivery:
+  # Replace with your deployed webhook endpoint
+  url: https://your-service.example.com/hooks/stacks
+  # Optional shared secret to verify requests
+  secret: "<SHARED_SECRET>"
+
+# Optional: start from a specific block height (uncomment to use)
+# start_block: 0
+
