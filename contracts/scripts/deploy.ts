@@ -1,28 +1,14 @@
 import { makeContractDeploy, broadcastTransaction, AnchorMode, ClarityVersion } from '@stacks/transactions';
-import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
 import { readFileSync } from 'fs';
 import path from 'path';
-import  dotenv  from 'dotenv';
+import { loadNetworkConfig, getExplorerTxUrl } from './config';
 
-// Load environment variables from .env file
-dotenv.config();
-
-// Load environment variables
-const PRIVATE_KEY = process.env.PRIVATE_KEY || process.env.DEPLOYER_KEY;
-const NETWORK_ENV = process.env.STACKS_NETWORK || 'mainnet'; // Default to mainnet for Builder Challenge
-
-if (!PRIVATE_KEY) {
-    console.error("Error: PRIVATE_KEY or DEPLOYER_KEY environment variable is required.");
-    console.error("Set your private key in .env file");
-    process.exit(1);
-}
-
-// TypeScript assertion - we know PRIVATE_KEY is defined due to the check above
-const privateKey: string = PRIVATE_KEY;
+// Load configuration from environment
+const networkConfig = loadNetworkConfig();
 
 async function deployContract(contractFileName: string, contractName: string) {
-    const network = NETWORK_ENV === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET;
-    const networkName = NETWORK_ENV === 'mainnet' ? 'Mainnet' : 'Testnet';
+    const network = networkConfig.network;
+    const networkName = networkConfig.networkName;
 
     // Read contract source code
     const contractPath = path.join(process.cwd(), 'contracts', contractFileName);
@@ -35,7 +21,7 @@ async function deployContract(contractFileName: string, contractName: string) {
     const txOptions = {
         contractName,
         codeBody: contractSource,
-        senderKey: privateKey,
+        senderKey: networkConfig.privateKey,
         network,
         anchorMode: AnchorMode.Any,
         clarityVersion: ClarityVersion.Clarity3,
@@ -56,7 +42,7 @@ async function deployContract(contractFileName: string, contractName: string) {
         } else {
             console.log('\n✅ Contract deployed successfully!');
             console.log(`📋 Transaction ID: ${broadcastResponse.txid}`);
-            console.log(`🔗 Explorer: https://explorer.hiro.so/txid/${broadcastResponse.txid}?chain=${NETWORK_ENV}`);
+            console.log(`🔗 Explorer: ${getExplorerTxUrl(broadcastResponse.txid, networkConfig.networkEnv)}`);
             return broadcastResponse.txid;
         }
     } catch (error) {
@@ -66,7 +52,7 @@ async function deployContract(contractFileName: string, contractName: string) {
 }
 
 async function deployAll() {
-    console.log(`🚀 Deploying contracts to ${NETWORK_ENV}...`);
+    console.log(`🚀 Deploying contracts to ${networkConfig.networkName}...`);
     console.log(`📦 Using Clarity 3\n`);
 
     try {

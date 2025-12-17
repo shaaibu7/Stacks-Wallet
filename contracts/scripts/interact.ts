@@ -14,53 +14,14 @@ import {
   noneCV,
   bufferCV
 } from '@stacks/transactions';
-import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
-
-interface Config {
-  privateKey: string;
-  network: any;
-  networkName: string;
-  contractAddress: string;
-  contractName: string;
-}
+import { loadContractConfig, displayNetworkInfo, getExplorerTxUrl } from './config';
+import type { ContractConfig } from './config';
 
 class TokenInteractionScript {
-  private config: Config;
+  private config: ContractConfig;
 
   constructor() {
-    this.config = this.loadConfig();
-  }
-
-  private loadConfig(): Config {
-    const privateKey = process.env.PRIVATE_KEY || process.env.DEPLOYER_KEY;
-    const networkEnv = process.env.STACKS_NETWORK || 'testnet';
-    const contractAddress = process.env.CONTRACT_ADDRESS || process.env.DEPLOYER_ADDRESS;
-    const contractName = process.env.CONTRACT_NAME || 'token-contract';
-
-    if (!privateKey) {
-      console.error('❌ Error: PRIVATE_KEY or DEPLOYER_KEY environment variable is required.');
-      process.exit(1);
-    }
-
-    if (!contractAddress) {
-      console.error('❌ Error: CONTRACT_ADDRESS or DEPLOYER_ADDRESS environment variable is required.');
-      process.exit(1);
-    }
-
-    const network = networkEnv === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET;
-    const networkName = networkEnv === 'mainnet' ? 'Mainnet' : 'Testnet';
-
-    return {
-      privateKey,
-      network,
-      networkName,
-      contractAddress,
-      contractName
-    };
+    this.config = loadContractConfig('CONTRACT_ADDRESS', 'token-contract');
   }
 
   private async callReadOnly(functionName: string, functionArgs: any[] = []) {
@@ -110,7 +71,7 @@ class TokenInteractionScript {
       } else {
         console.log('✅ Transaction broadcast successfully!');
         console.log(`📋 Transaction ID: ${broadcastResponse.txid}`);
-        console.log(`🔗 Explorer: https://explorer.hiro.so/txid/${broadcastResponse.txid}?chain=${this.config.networkName.toLowerCase()}`);
+        console.log(`🔗 Explorer: ${getExplorerTxUrl(broadcastResponse.txid, this.config.networkEnv)}`);
         return broadcastResponse.txid;
       }
     } catch (error) {
@@ -121,6 +82,7 @@ class TokenInteractionScript {
 
   async getTokenInfo() {
     console.log('📊 Fetching token information...\n');
+    displayNetworkInfo(this.config);
     
     try {
       const [name, symbol, decimals, totalSupply, tokenUri] = await Promise.all([
@@ -136,9 +98,7 @@ class TokenInteractionScript {
       console.log(`   Symbol: ${symbol.value}`);
       console.log(`   Decimals: ${decimals.value}`);
       console.log(`   Total Supply: ${totalSupply.value}`);
-      console.log(`   Token URI: ${tokenUri.value?.value || 'Not set'}`);
-      console.log(`   Contract: ${this.config.contractAddress}.${this.config.contractName}`);
-      console.log(`   Network: ${this.config.networkName}\n`);
+      console.log(`   Token URI: ${tokenUri.value?.value || 'Not set'}\n`);
     } catch (error) {
       console.error('❌ Failed to fetch token information');
     }

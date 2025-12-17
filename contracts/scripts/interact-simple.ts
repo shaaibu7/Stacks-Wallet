@@ -13,33 +13,28 @@ import {
   someCV,
   bufferCV
 } from '@stacks/transactions';
-import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
-import dotenv from 'dotenv';
+import { loadContractConfig, displayNetworkInfo, getExplorerTxUrl } from './config';
+import type { ContractConfig } from './config';
 
-// Load environment variables
-dotenv.config();
+// Load configuration from environment
+const baseConfig = loadContractConfig('CONTRACT_ADDRESS', 'token-contract');
 
 // CONFIGURATION - Loaded from .env file
 const CONFIG = {
-  privateKey: process.env.PRIVATE_KEY!,
-  network: process.env.STACKS_NETWORK === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET,
-  networkName: process.env.STACKS_NETWORK === 'mainnet' ? 'Mainnet' : 'Testnet',
-  contractAddress: process.env.CONTRACT_ADDRESS!.split('.')[0], // Extract address part
-  contractName: process.env.CONTRACT_ADDRESS!.split('.')[1], // Extract contract name part
-  senderAddress: process.env.CONTRACT_ADDRESS!.split('.')[0], // The address that deployed the contract (owns the private key)
+  ...baseConfig,
   
   // HARDCODED INTERACTION DATA
-  testAddress: process.env.CONTRACT_ADDRESS!.split('.')[0], // Use your own address to check balance
-  transferAmount: '100000', // Amount to transfer (0.1 token with 6 decimals)
-  transferRecipient: 'ST000000000000000000002AMW42H', // Recipient address (testnet burn address)
+  testAddress: baseConfig.contractAddress, // Use your own address to check balance
+  transferAmount: process.env.TRANSFER_AMOUNT || '100000', // Amount to transfer (0.1 token with 6 decimals)
+  transferRecipient: process.env.TRANSFER_RECIPIENT || 'ST000000000000000000002AMW42H', // Recipient address (testnet burn address)
   transferMemo: 'Automated test transfer',
-  mintAmount: '1000000', // Amount to mint (1 token with 6 decimals)
-  mintRecipient: process.env.CONTRACT_ADDRESS!.split('.')[0], // Mint to your own address
-  newTokenUri: 'https://example.com/updated-token-metadata.json',
+  mintAmount: process.env.MINT_AMOUNT || '1000000', // Amount to mint (1 token with 6 decimals)
+  mintRecipient: baseConfig.contractAddress, // Mint to your own address
+  newTokenUri: process.env.TOKEN_URI || 'https://example.com/updated-token-metadata.json',
   
   // TRANSACTION SETTINGS
-  totalTransactions: 50, // Total number of transactions to generate
-  delayBetweenTx: 3000, // 3 seconds between transactions
+  totalTransactions: parseInt(process.env.TOTAL_TRANSACTIONS || '50'), // Total number of transactions to generate
+  delayBetweenTx: parseInt(process.env.DELAY_BETWEEN_TX || '3000'), // 3 seconds between transactions
 };
 
 class SimpleTokenInteraction {
@@ -91,7 +86,7 @@ class SimpleTokenInteraction {
       } else {
         console.log('✅ Transaction broadcast successfully!');
         console.log(`📋 Transaction ID: ${broadcastResponse.txid}`);
-        console.log(`🔗 Explorer: https://explorer.hiro.so/txid/${broadcastResponse.txid}?chain=${CONFIG.networkName.toLowerCase()}`);
+        console.log(`🔗 Explorer: ${getExplorerTxUrl(broadcastResponse.txid, CONFIG.networkEnv)}`);
         return broadcastResponse.txid;
       }
     } catch (error) {
@@ -102,8 +97,7 @@ class SimpleTokenInteraction {
 
   async runAllInteractions() {
     console.log('🚀 Starting automated token contract interactions...\n');
-    console.log(`📍 Network: ${CONFIG.networkName}`);
-    console.log(`📄 Contract: ${CONFIG.contractAddress}.${CONFIG.contractName}`);
+    displayNetworkInfo(CONFIG);
     console.log(`🎯 Target: ${CONFIG.totalTransactions} transactions\n`);
 
     let successfulTx = 0;
@@ -225,7 +219,8 @@ class SimpleTokenInteraction {
 
       const txId = await this.broadcastContractCall('mint', functionArgs);
       if (txNumber) {
-        console.log(`✅ Mint ${txNumber} completed: ${txId}\n`);
+        console.log(`✅ Mint ${txNumber} completed: ${txId}`);
+        console.log(`🔗 Explorer: ${getExplorerTxUrl(txId, CONFIG.networkEnv)}\n`);
       }
     } catch (error) {
       console.error('❌ Mint failed:', error instanceof Error ? error.message : String(error));
@@ -253,17 +248,6 @@ class SimpleTokenInteraction {
 async function main() {
   console.log('🪙 Automated Token Contract Interaction Script');
   console.log('==============================================\n');
-  
-  // Validate configuration
-  if (!CONFIG.privateKey) {
-    console.error('❌ PRIVATE_KEY not found in .env file');
-    process.exit(1);
-  }
-  
-  if (!process.env.CONTRACT_ADDRESS) {
-    console.error('❌ CONTRACT_ADDRESS not found in .env file');
-    process.exit(1);
-  }
 
   const script = new SimpleTokenInteraction();
   await script.runAllInteractions();

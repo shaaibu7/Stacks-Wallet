@@ -9,20 +9,30 @@ import {
   broadcastTransaction,
   makeContractDeploy,
   StacksTestnet,
-  StacksMainnet
+  StacksMainnet,
+  uintCV, 
+  stringUtf8CV, 
+  principalCV, 
+  someCV, 
+  noneCV, 
+  bufferCV, 
+  boolCV,
+  callReadOnlyFunction
 } from '@stacks/transactions';
 import { StacksNetwork } from '@stacks/network';
 import { readFileSync } from 'fs';
-import * as dotenv from 'dotenv';
+import { loadContractConfig, displayNetworkInfo, getExplorerTxUrl } from './config';
+import type { ContractConfig } from './config';
 
-dotenv.config();
+// Load configuration from environment
+const config = loadContractConfig('CONTRACT_ADDRESS', 'multi-token-nft');
 
 // Network configuration
-const network = new StacksTestnet(); // Change to StacksMainnet() for mainnet
+const network = config.network;
 
 // Contract details
-const contractName = 'multi-token-nft';
-const contractAddress = process.env.CONTRACT_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+const contractName = config.contractName;
+const contractAddress = config.contractAddress;
 
 // Example functions to interact with the multi-token NFT contract
 
@@ -261,28 +271,13 @@ async function example() {
 // Uncomment to run the example
 // example();
 
-// Import required functions from @stacks/transactions
-import { 
-  uintCV, 
-  stringUtf8CV, 
-  principalCV, 
-  someCV, 
-  noneCV, 
-  bufferCV, 
-  boolCV,
-  callReadOnlyFunction
-} from '@stacks/transactions';
-
 // CLI interface for easy interaction
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
 
-  const senderKey = process.env.PRIVATE_KEY;
-  if (!senderKey) {
-    console.error('Please set PRIVATE_KEY in your .env file');
-    process.exit(1);
-  }
+  console.log('🎨 Multi-Token NFT Contract Interaction\n');
+  displayNetworkInfo(config);
 
   try {
     switch (command) {

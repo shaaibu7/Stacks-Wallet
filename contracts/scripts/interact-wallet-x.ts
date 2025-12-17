@@ -12,20 +12,10 @@ import {
   stringUtf8CV,
   contractPrincipalCV
 } from '@stacks/transactions';
-import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network';
-import dotenv from 'dotenv';
+import { loadTokenContractConfig, displayTokenContractInfo, getExplorerTxUrl } from './config';
+import type { TokenContractConfig } from './config';
 
-// Load environment variables
-dotenv.config();
-
-interface Config {
-  privateKey: string;
-  network: any;
-  networkName: string;
-  contractAddress: string;
-  contractName: string;
-  tokenContractAddress: string;
-  tokenContractName: string;
+interface WalletXConfig extends TokenContractConfig {
   // Default values from .env
   defaultWalletName: string;
   defaultInitialFunding: string;
@@ -41,55 +31,14 @@ interface Config {
 }
 
 class WalletXInteractionScript {
-  private config: Config;
+  private config: WalletXConfig;
 
   constructor() {
     this.config = this.loadConfig();
   }
 
-  private loadConfig(): Config {
-    const privateKey = process.env.PRIVATE_KEY;
-    const networkEnv = process.env.STACKS_NETWORK || 'testnet';
-    
-    // Parse wallet contract from WALLET_CONTRACT env var (format: ADDRESS.CONTRACT_NAME)
-    const walletContract = process.env.WALLET_CONTRACT;
-    let contractAddress: string;
-    let contractName: string;
-    
-    if (walletContract && walletContract.includes('.')) {
-      [contractAddress, contractName] = walletContract.split('.');
-    } else {
-      // Fallback to old format
-      contractAddress = process.env.CONTRACT_ADDRESS || process.env.DEPLOYER_ADDRESS || '';
-      contractName = process.env.WALLET_CONTRACT_NAME || 'wallet-x';
-    }
-    
-    // Parse token contract from CONTRACT_ADDRESS env var (format: ADDRESS.CONTRACT_NAME)
-    const tokenContract = process.env.CONTRACT_ADDRESS;
-    let tokenContractAddress: string;
-    let tokenContractName: string;
-    
-    if (tokenContract && tokenContract.includes('.')) {
-      [tokenContractAddress, tokenContractName] = tokenContract.split('.');
-    } else {
-      // Fallback
-      tokenContractAddress = contractAddress;
-      tokenContractName = 'token-contract';
-    }
-
-    if (!privateKey) {
-      console.error('❌ Error: PRIVATE_KEY environment variable is required.');
-      process.exit(1);
-    }
-
-    if (!contractAddress) {
-      console.error('❌ Error: WALLET_CONTRACT environment variable is required.');
-      console.error('   Format: ADDRESS.CONTRACT_NAME (e.g., ST1ABC...XYZ.wallet-x)');
-      process.exit(1);
-    }
-
-    const network = networkEnv === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET;
-    const networkName = networkEnv === 'mainnet' ? 'Mainnet' : 'Testnet';
+  private loadConfig(): WalletXConfig {
+    const baseConfig = loadTokenContractConfig('WALLET_CONTRACT', 'TOKEN_CONTRACT_ADDRESS', 'wallet-x', 'token-contract');
 
     // Load default values from .env
     const defaultWalletName = process.env.DEFAULT_WALLET_NAME || 'My Company Wallet';
@@ -102,16 +51,10 @@ class WalletXInteractionScript {
     const defaultWithdrawAmount = process.env.DEFAULT_WITHDRAW_AMOUNT || '25000';
     const defaultReceiverAddress = process.env.DEFAULT_RECEIVER_ADDRESS || 'ST000000000000000000002AMW42H';
     const defaultTxFee = parseInt(process.env.DEFAULT_TX_FEE || '200000');
-    const adminAddress = process.env.ADMIN_ADDRESS || contractAddress;
+    const adminAddress = process.env.ADMIN_ADDRESS || baseConfig.contractAddress;
 
     return {
-      privateKey,
-      network,
-      networkName,
-      contractAddress,
-      contractName,
-      tokenContractAddress,
-      tokenContractName,
+      ...baseConfig,
       defaultWalletName,
       defaultInitialFunding,
       defaultMemberName,
@@ -173,7 +116,7 @@ class WalletXInteractionScript {
       } else {
         console.log('✅ Transaction broadcast successfully!');
         console.log(`📋 Transaction ID: ${broadcastResponse.txid}`);
-        console.log(`🔗 Explorer: https://explorer.hiro.so/txid/${broadcastResponse.txid}?chain=${this.config.networkName.toLowerCase()}`);
+        console.log(`🔗 Explorer: ${getExplorerTxUrl(broadcastResponse.txid, this.config.networkEnv)}`);
         return broadcastResponse.txid;
       }
     } catch (error) {
@@ -547,14 +490,17 @@ Note:
 async function main() {
   const args = process.argv.slice(2);
   
+  const script = new WalletXInteractionScript();
+  
   if (args.length === 0) {
-    const script = new WalletXInteractionScript();
     script.displayHelp();
     return;
   }
 
   const command = args[0].toLowerCase();
-  const script = new WalletXInteractionScript();
+  
+  console.log('🏦 WalletX Contract Interaction\n');
+  displayTokenContractInfo(script['config']);
 
   try {
     switch (command) {
