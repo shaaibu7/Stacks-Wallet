@@ -54,6 +54,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   const stacksNetwork = useMemo(() => buildNetwork(network), [network]);
+  const apiBaseUrl = stacksNetwork.client.baseUrl;
 
   const ensureContract = () => {
     if (!contractAddress || !contractName) {
@@ -206,6 +207,12 @@ function App() {
           <div className="stat">
             <p className="label">Balance</p>
             <p className="value">{balance !== null ? balance.toString() : "—"}</p>
+          </div>
+          <div className="stat">
+            <p className="label">Network / API</p>
+            <p className="value small">
+              {network} · {apiBaseUrl}
+            </p>
           </div>
         </div>
       </section>
