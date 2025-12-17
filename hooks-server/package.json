@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:webhook": "node test-webhook.js",
+    "test:activity": "node test-activity.js"
   },
   "dependencies": {
     "express": "^4.21.1"
