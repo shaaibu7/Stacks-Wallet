@@ -11,7 +11,11 @@
     "deploy": "tsx scripts/deploy.ts",
     "deploy-wallet": "tsx scripts/deploy-wallet.ts",
     "interact": "tsx scripts/interact.ts",
-    "interact-simple": "tsx scripts/interact-simple.ts"
+    "interact-simple": "tsx scripts/interact-simple.ts",
+    "interact-wallet": "tsx scripts/interact-wallet-x.ts",
+    "wallet-demo": "tsx scripts/wallet-x-demo.ts",
+    "wallet-simulate": "tsx scripts/wallet-x-simulation.ts",
+    "check-account": "tsx scripts/check-account.ts"
   },
   "author": "",
   "license": "ISC",
