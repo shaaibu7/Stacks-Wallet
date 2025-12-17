@@ -17,6 +17,18 @@ describe("token-contract read-only functions", () => {
     expect(simnet.blockHeight).toBeDefined();
   });
 
+  it("get-name returns the expected token name", () => {
+    const { result } = simnet.callReadOnlyFn(
+      "token-contract",
+      "get-name",
+      [],
+      deployer
+    );
+
+    // ResponseOkCV<StringUtf8CV> -> inner string is in result.value.value
+    expect(result.value.value).toBe("Clarity Coin");
+  });
+
   it("get-total-supply returns 0 before any minting", () => {
     const { result } = simnet.callReadOnlyFn(
       "token-contract",      // contract name from Clarinet.toml
