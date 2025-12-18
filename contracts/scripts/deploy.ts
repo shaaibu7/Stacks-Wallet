@@ -10,6 +10,11 @@ dotenv.config();
 // Load environment variables
 const PRIVATE_KEY = process.env.PRIVATE_KEY || process.env.DEPLOYER_KEY;
 const NETWORK_ENV = process.env.STACKS_NETWORK || 'mainnet'; // Default to mainnet for Builder Challenge
+// Optional overrides for contract names so you can deploy v2/v3 without collisions
+const TRAIT_NAME = process.env.TRAIT_NAME || 'sip-010-trait';
+const TOKEN_BASE_NAME = process.env.TOKEN_BASE_NAME || 'token-contract';
+// Fees are specified in micro-STX. Default 150_000 (0.15 STX) if not overridden.
+const DEPLOY_FEE = Number.parseInt(process.env.FEE || '150000', 10);
 
 if (!PRIVATE_KEY) {
     console.error("Error: PRIVATE_KEY or DEPLOYER_KEY environment variable is required.");
@@ -39,7 +44,7 @@ async function deployContract(contractFileName: string, contractName: string) {
         network,
         anchorMode: AnchorMode.Any,
         clarityVersion: ClarityVersion.Clarity3,
-        fee: 150000,
+        fee: DEPLOY_FEE,
         postConditionMode: 0x01,
     };
 
@@ -70,9 +75,9 @@ async function deployAll() {
     console.log(`📦 Using Clarity 3\n`);
 
     try {
-        // Deploy trait first
+        // Deploy trait first (name can be overridden via TRAIT_NAME)
         console.log("1️⃣ Deploying SIP-010 trait...");
-        const traitTxId = await deployContract('sip-010-trait.clar', 'sip-010-trait');
+        const traitTxId = await deployContract('sip-010-trait.clar', TRAIT_NAME);
         
         console.log("\n⏳ Waiting 30 seconds for trait deployment to confirm...");
         await new Promise(resolve => setTimeout(resolve, 30000));
@@ -80,7 +85,7 @@ async function deployAll() {
         // Deploy token contract
         console.log("\n2️⃣ Deploying token contract...");
         const timestamp = Date.now();
-        const tokenContractName = `token-contract-${timestamp}`;
+        const tokenContractName = `${TOKEN_BASE_NAME}-${timestamp}`;
         const tokenTxId = await deployContract('token-contract.clar', tokenContractName);
         
         console.log(`\n🎉 All contracts deployed successfully!`);
