@@ -1,6 +1,6 @@
 
 import { describe, expect, it } from "vitest";
-import { standardPrincipalCV } from "@stacks/transactions";
+import { standardPrincipalCV, uintCV } from "@stacks/transactions";
 
 // Clarinet's simnet environment is provided globally by vitest-environment-clarinet
 const accounts = simnet.getAccounts();
@@ -51,6 +51,36 @@ describe("token-contract read-only functions", () => {
 
     // ResponseOkCV<UIntCV> -> result.value.value is a bigint
     expect(result.value.value).toBe(0n);
+  });
+
+  it("owner can mint within max supply and balances update", () => {
+    // mint 100 units to wallet1
+    const { result: mintResult } = simnet.callPublicFn(
+      "token-contract",
+      "mint",
+      [uintCV(100n), standardPrincipalCV(wallet1)],
+      deployer,
+    );
+    // ResponseOkCV<bool> -> result.type === "ok"
+    expect(mintResult.type).toBe("ok");
+
+    // total supply should now be 100
+    const { result: supplyResult } = simnet.callReadOnlyFn(
+      "token-contract",
+      "get-total-supply",
+      [],
+      deployer,
+    );
+    expect(supplyResult.value.value).toBe(100n);
+
+    // wallet1 balance should be 100
+    const { result: balanceResult } = simnet.callReadOnlyFn(
+      "token-contract",
+      "get-balance",
+      [standardPrincipalCV(wallet1)],
+      wallet1,
+    );
+    expect(balanceResult.value.value).toBe(100n);
   });
 });
 
