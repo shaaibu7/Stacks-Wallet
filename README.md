@@ -217,6 +217,44 @@ No private keys are required; calls are read-only.
 
 ---
 
+## Hiro Chainhooks (webhook listener)
+
+This repo includes a minimal example to react to on-chain activity via Hiro Chainhooks.
+
+### Chainhook definition
+
+- File: `ops/chainhooks/token-contract.yaml`
+- Watches `token-contract` `mint` and `transfer` calls (adjust `contract_identifier` to your deployed address/name).
+- Sends POSTs to your webhook URL with an optional shared secret.
+
+### Webhook server (Node/Express)
+
+- Location: `hooks-server/`
+- Quick start:
+
+  ```bash
+  cd hooks-server
+  cp env.example .env   # set CHAINHOOK_SECRET and PORT
+  npm install
+  npm run dev           # starts on PORT (default 3001)
+  ```
+
+- Endpoint: `POST /hooks/stacks`
+  - Verifies HMAC signature if `CHAINHOOK_SECRET` is set (`x-chainhook-signature` header).
+  - Logs `block_height`, `txid`, and `matched_events`. Extend to enqueue or persist events.
+
+### Registering the chainhook
+
+1) Deploy your webhook (public HTTPS).
+2) Update `ops/chainhooks/token-contract.yaml` with:
+   - `contract_identifier`: `<CONTRACT_ADDRESS>.token-contract` (or your timestamped name).
+   - `delivery.url`: your webhook endpoint.
+   - `delivery.secret`: value matching `CHAINHOOK_SECRET`.
+3) Register with the Hiro Chainhooks service (CLI/API). Use `testnet` while iterating.
+4) Trigger your contract functions and watch webhook logs.
+
+---
+
 ## License
 
 This project is licensed under the terms specified in `LICENSE`.
