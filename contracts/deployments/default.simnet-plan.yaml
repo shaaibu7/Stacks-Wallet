@@ -73,4 +73,9 @@ plan:
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/token-contract.clar
             clarity-version: 4
+        - emulated-contract-publish:
+            contract-name: wallet-x
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/wallet-x.clar
+            clarity-version: 4
       epoch: "3.3"
