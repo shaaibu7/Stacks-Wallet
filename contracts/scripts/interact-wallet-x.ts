@@ -146,7 +146,7 @@ class WalletXInteractionScript {
     }
   }
 
-  private async broadcastContractCall(functionName: string, functionArgs: any[] = [], fee?: number, retryCount: number = 0) {
+  private async broadcastContractCall(functionName: string, functionArgs: any[] = [], fee?: number, retryCount: number = 0): Promise<string> {
     const maxRetries = 2;
     
     try {
@@ -190,7 +190,8 @@ class WalletXInteractionScript {
       }
     } catch (error) {
       // Check if it's a nonce-related error and we can retry
-      if (error.message.includes('BadNonce') && retryCount < maxRetries) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('BadNonce') && retryCount < maxRetries) {
         console.log(`⚠️  Nonce error in catch block. Retrying in 10 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
         await this.sleep(10000);
         return await this.broadcastContractCall(functionName, functionArgs, fee, retryCount + 1);
@@ -209,6 +210,8 @@ class WalletXInteractionScript {
     console.log(`🏦 Registering wallet "${name}" with ${amount} tokens...\n`);
     
     try {
+      // Use a well-known testnet token contract or deploy our own
+      // For now, let's try with the configured token contract
       const functionArgs = [
         stringUtf8CV(name),
         uintCV(amount),
@@ -531,7 +534,7 @@ class WalletXInteractionScript {
 
     // Summary
     console.log('\n' + '='.repeat(60));
-    console.log('� BULK OPnERATION SUMMARY');
+    console.log('📊 BULK OPERATION SUMMARY');
     console.log('='.repeat(60));
     console.log(`✅ Wallet Registrations: ${results.walletRegistrations}`);
     console.log(`✅ Member Onboardings: ${results.memberOnboardings}`);
