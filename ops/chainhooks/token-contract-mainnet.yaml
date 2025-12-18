@@ -1,15 +1,15 @@
-name: token-contract-mint-transfer
+name: token-contract-v2-mint-transfer
 chain: stacks
-network: testnet
+network: mainnet
 
-# Watches your deployed SIP-010 token contract on testnet
+# Watches your deployed SIP-010 token contract v2 on mainnet
 # Update contract_identifier if you redeploy with a new name or address.
 filters:
   - contract_call:
-      contract_identifier: "ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.token-contract-1765968837127"
+      contract_identifier: "SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.token-contract-v2-1766049545741"
       function_name: "mint"
   - contract_call:
-      contract_identifier: "ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.token-contract-1765968837127"
+      contract_identifier: "SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.token-contract-v2-1766049545741"
       function_name: "transfer"
 
 delivery:
