@@ -280,7 +280,7 @@
   )
 )
 
-;; Batch transfer multiple tokens
+;; Batch transfer multiple tokens (optimized)
 (define-public (safe-batch-transfer-from 
   (from principal) 
   (to principal) 
@@ -288,59 +288,78 @@
   (amounts (list 50 uint))
   (memo (optional (buff 34)))
 )
-  (begin
-    ;; Check authorization
-    (asserts! (or 
-      (is-eq tx-sender from)
-      (is-eq contract-caller from)
-      (default-to false (map-get? operator-approvals {owner: from, operator: tx-sender}))
-    ) ERR_UNAUTHORIZED)
-    
-    ;; Process each transfer
-    (try! (fold batch-transfer-helper (zip token-ids amounts) {from: from, to: to, success: true}))
-    
-    ;; Print memo if provided
-    (match memo to-print (print to-print) 0x)
-    
-    (print {
-      notification: "transfer-batch",
-      payload: {
-        operator: tx-sender,
-        from: from,
-        to: to,
-        token-ids: token-ids,
-        amounts: amounts
-      }
-    })
-    
-    (ok true)
+  (let ((ids-count (len token-ids))
+        (amounts-count (len amounts)))
+    (begin
+      ;; Early validation
+      (try! (assert-not-paused))
+      (asserts! (is-authorized from tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-recipient to) ERR_INVALID_RECIPIENT)
+      (asserts! (is-eq ids-count amounts-count) ERR_BATCH_SIZE_MISMATCH)
+      (asserts! (<= ids-count MAX_BATCH_SIZE) ERR_BATCH_TOO_LARGE)
+      
+      ;; Process batch transfer
+      (try! (fold batch-transfer-optimized 
+        (zip-transfer-data token-ids amounts) 
+        {from: from, to: to, index: u0}))
+      
+      ;; Handle memo
+      (match memo memo-data (print {memo: memo-data}) true)
+      
+      ;; Emit batch transfer event
+      (print {
+        notification: "transfer-batch",
+        payload: {
+          operator: tx-sender,
+          from: from,
+          to: to,
+          token-ids: token-ids,
+          amounts: amounts
+        }
+      })
+      
+      (ok true)
+    )
   )
 )
 
-;; Helper for batch transfers
-(define-private (batch-transfer-helper 
-  (token-amount-pair {token-id: uint, amount: uint})
-  (transfer-data {from: principal, to: principal, success: bool})
+;; Optimized batch transfer helper with better error handling
+(define-private (batch-transfer-optimized 
+  (transfer-item {token-id: uint, amount: uint})
+  (batch-state {from: principal, to: principal, index: uint})
 )
   (let (
-    (token-id (get token-id token-amount-pair))
-    (amount (get amount token-amount-pair))
-    (from (get from transfer-data))
-    (to (get to transfer-data))
-    (sender-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: from})))
-    (receiver-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: to})))
+    (token-id (get token-id transfer-item))
+    (amount (get amount transfer-item))
+    (from (get from batch-state))
+    (to (get to batch-state))
+    (from-key {token-id: token-id, owner: from})
+    (to-key {token-id: token-id, owner: to})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (receiver-balance (default-to u0 (map-get? token-balances to-key)))
   )
     (begin
+      ;; Validate transfer
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
       (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
       
-      ;; Update balances
-      (map-set token-balances {token-id: token-id, owner: from} (- sender-balance amount))
-      (map-set token-balances {token-id: token-id, owner: to} (+ receiver-balance amount))
+      ;; Execute transfer
+      (map-set token-balances from-key (- sender-balance amount))
+      (map-set token-balances to-key (+ receiver-balance amount))
       
-      transfer-data
+      ;; Return updated state
+      {from: from, to: to, index: (+ (get index batch-state) u1)}
     )
   )
+)
+
+;; Create transfer data pairs
+(define-private (zip-transfer-data (token-ids (list 50 uint)) (amounts (list 50 uint)))
+  (map create-transfer-item token-ids amounts)
+)
+
+(define-private (create-transfer-item (token-id uint) (amount uint))
+  {token-id: token-id, amount: amount}
 )
 
 ;; Burn tokens
