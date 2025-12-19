@@ -1,19 +1,40 @@
 ;; Multi-Token NFT Contract (ERC1155-like)
 ;; Supports both fungible and non-fungible tokens in a single contract
+;; Version: 2.0.0
+
+;; ===== CONSTANTS =====
+
+;; Contract owner (set at deployment)
+(define-constant CONTRACT_OWNER tx-sender)
+
+;; Maximum values for safety
+(define-constant MAX_SUPPLY u1000000000000) ;; 1 trillion max supply per token
+(define-constant MAX_BATCH_SIZE u50)
+(define-constant MAX_URI_LENGTH u256)
+
+;; ===== ERROR CODES =====
+
+;; Authorization errors (100-109)
+(define-constant ERR_OWNER_ONLY (err u100))
+(define-constant ERR_NOT_TOKEN_OWNER (err u101))
+(define-constant ERR_UNAUTHORIZED (err u102))
+
+;; Token operation errors (110-119)
+(define-constant ERR_TOKEN_NOT_FOUND (err u110))
+(define-constant ERR_INSUFFICIENT_BALANCE (err u111))
+(define-constant ERR_INVALID_AMOUNT (err u112))
+(define-constant ERR_SUPPLY_EXCEEDED (err u113))
+
+;; Input validation errors (120-129)
+(define-constant ERR_INVALID_RECIPIENT (err u120))
+(define-constant ERR_BATCH_SIZE_MISMATCH (err u121))
+(define-constant ERR_BATCH_TOO_LARGE (err u122))
+(define-constant ERR_INVALID_URI (err u123))
+
+;; ===== TOKEN DEFINITION =====
 
 ;; Define the semi-fungible token
 (define-non-fungible-token multi-token uint)
-
-;; Define errors
-(define-constant ERR_OWNER_ONLY (err u100))
-(define-constant ERR_NOT_TOKEN_OWNER (err u101))
-(define-constant ERR_INSUFFICIENT_BALANCE (err u102))
-(define-constant ERR_TOKEN_NOT_FOUND (err u103))
-(define-constant ERR_INVALID_AMOUNT (err u104))
-(define-constant ERR_UNAUTHORIZED (err u105))
-
-;; Define constants
-(define-constant CONTRACT_OWNER tx-sender)
 
 ;; Data variables
 (define-data-var next-token-id uint u1)
