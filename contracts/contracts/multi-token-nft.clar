@@ -36,16 +36,47 @@
 ;; Define the semi-fungible token
 (define-non-fungible-token multi-token uint)
 
-;; Data variables
+;; ===== DATA VARIABLES =====
+
 (define-data-var next-token-id uint u1)
 (define-data-var contract-uri (string-utf8 256) u"https://api.example.com/metadata/")
+(define-data-var contract-paused bool false)
 
-;; Maps for token balances and metadata
+;; ===== DATA MAPS =====
+
+;; Core token data
 (define-map token-balances {token-id: uint, owner: principal} uint)
 (define-map token-supplies uint uint)
-(define-map token-uris uint (string-utf8 256))
 (define-map token-creators uint principal)
+
+;; Metadata and URIs
+(define-map token-uris uint (string-utf8 256))
+(define-map token-names uint (string-utf8 64))
+
+;; Permissions and approvals
 (define-map operator-approvals {owner: principal, operator: principal} bool)
+
+;; ===== VALIDATION HELPERS =====
+
+;; Check if contract is not paused
+(define-private (assert-not-paused)
+  (asserts! (not (var-get contract-paused)) (err u130))
+)
+
+;; Validate token amount
+(define-private (is-valid-amount (amount uint))
+  (and (> amount u0) (<= amount MAX_SUPPLY))
+)
+
+;; Validate principal (not contract deployer address)
+(define-private (is-valid-recipient (recipient principal))
+  (not (is-eq recipient CONTRACT_OWNER))
+)
+
+;; Check if token exists
+(define-private (token-exists-check (token-id uint))
+  (is-some (map-get? token-creators token-id))
+)
 
 ;; Get balance of a specific token for an owner
 (define-read-only (balance-of (owner principal) (token-id uint))
