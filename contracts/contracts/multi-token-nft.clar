@@ -509,25 +509,77 @@
   )
 )
 
-;; Set contract URI (owner only)
+;; Set contract URI with validation (owner only)
 (define-public (set-contract-uri (uri (string-utf8 256)))
   (begin
-    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_OWNER_ONLY)
+    (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+    (asserts! (> (len uri) u0) ERR_INVALID_URI)
+    (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
+    
     (var-set contract-uri uri)
+    
+    (print {
+      notification: "contract-uri-updated",
+      payload: {
+        admin: tx-sender,
+        new-uri: uri,
+        block-height: block-height
+      }
+    })
+    
     (ok true)
   )
 )
 
-;; Set token URI (creator only)
+;; Set token URI with validation (creator only)
 (define-public (set-token-uri (token-id uint) (uri (string-utf8 256)))
-  (let ((creator (unwrap! (map-get? token-creators token-id) ERR_TOKEN_NOT_FOUND)))
-    (begin
-      (asserts! (is-eq tx-sender creator) ERR_UNAUTHORIZED)
-      (map-set token-uris token-id uri)
-      (ok true)
-    )
+  (begin
+    (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+    (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+    (asserts! (> (len uri) u0) ERR_INVALID_URI)
+    (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
+    
+    (map-set token-uris token-id uri)
+    
+    (print {
+      notification: "token-uri-updated",
+      payload: {
+        token-id: token-id,
+        creator: tx-sender,
+        new-uri: uri,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
   )
 )
+
+;; Set token name (creator only)
+(define-public (set-token-name (token-id uint) (name (string-utf8 64)))
+  (begin
+    (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+    (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+    (asserts! (> (len name) u0) ERR_INVALID_URI)
+    (asserts! (<= (len name) u64) ERR_INVALID_URI)
+    
+    (map-set token-names token-id name)
+    
+    (print {
+      notification: "token-name-updated",
+      payload: {
+        token-id: token-id,
+        creator: tx-sender,
+        new-name: name,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
+  )
+)
+
+;; ===== UTILITY AND QUERY FUNCTIONS =====
 
 ;; Get next token ID
 (define-read-only (get-next-token-id)
@@ -536,10 +588,71 @@
 
 ;; Check if token exists
 (define-read-only (token-exists (token-id uint))
-  (ok (is-some (map-get? token-creators token-id)))
+  (ok (token-exists-check token-id))
 )
 
 ;; Get token creator
 (define-read-only (get-token-creator (token-id uint))
   (ok (map-get? token-creators token-id))
+)
+
+;; Get token name
+(define-read-only (get-token-name (token-id uint))
+  (ok (map-get? token-names token-id))
+)
+
+;; Get contract pause status
+(define-read-only (get-contract-paused)
+  (ok (var-get contract-paused))
+)
+
+;; Get comprehensive token info
+(define-read-only (get-token-info (token-id uint))
+  (match (map-get? token-creators token-id)
+    creator (ok {
+      token-id: token-id,
+      creator: creator,
+      total-supply: (default-to u0 (map-get? token-supplies token-id)),
+      uri: (map-get? token-uris token-id),
+      name: (map-get? token-names token-id),
+      exists: true
+    })
+    (ok {
+      token-id: token-id,
+      creator: none,
+      total-supply: u0,
+      uri: none,
+      name: none,
+      exists: false
+    })
+  )
+)
+
+;; Get user's token portfolio (balances for multiple tokens)
+(define-read-only (get-user-portfolio (user principal) (token-ids (list 50 uint)))
+  (ok (map get-user-token-balance token-ids))
+)
+
+;; Helper for portfolio queries
+(define-private (get-user-token-balance (token-id uint))
+  {
+    token-id: token-id,
+    balance: (default-to u0 (map-get? token-balances {token-id: token-id, owner: tx-sender})),
+    exists: (token-exists-check token-id)
+  }
+)
+
+;; Batch token info query
+(define-read-only (get-tokens-info (token-ids (list 50 uint)))
+  (ok (map get-single-token-info token-ids))
+)
+
+;; Helper for batch token info
+(define-private (get-single-token-info (token-id uint))
+  {
+    token-id: token-id,
+    creator: (map-get? token-creators token-id),
+    total-supply: (default-to u0 (map-get? token-supplies token-id)),
+    exists: (token-exists-check token-id)
+  }
 )
