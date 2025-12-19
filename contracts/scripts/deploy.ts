@@ -43,13 +43,19 @@ async function deployContract(contractFileName: string, contractName: string) {
         senderKey: privateKey,
         network,
         anchorMode: AnchorMode.Any,
-        clarityVersion: ClarityVersion.Clarity3,
-        fee: DEPLOY_FEE,
+        clarityVersion: ClarityVersion.Clarity4,
+        fee: 150000,
         postConditionMode: 0x01,
     };
 
     try {
         console.log("⏳ Creating transaction...");
+        console.log("🔧 Transaction options:", {
+            contractName: txOptions.contractName,
+            network: networkName,
+            clarityVersion: txOptions.clarityVersion,
+            fee: txOptions.fee
+        });
         const transaction = await makeContractDeploy(txOptions);
         
         console.log("📤 Broadcasting to network...");
@@ -57,6 +63,7 @@ async function deployContract(contractFileName: string, contractName: string) {
 
         if ('error' in broadcastResponse) {
             console.error('❌ Deployment failed:', broadcastResponse.error);
+            console.error('❌ Full response:', JSON.stringify(broadcastResponse, null, 2));
             throw new Error(broadcastResponse.error);
         } else {
             console.log('\n✅ Contract deployed successfully!');
@@ -72,21 +79,18 @@ async function deployContract(contractFileName: string, contractName: string) {
 
 async function deployAll() {
     console.log(`🚀 Deploying contracts to ${NETWORK_ENV}...`);
-    console.log(`📦 Using Clarity 3\n`);
+    console.log(`📦 Using Clarity 4\n`);
 
     try {
-        // Deploy trait first (name can be overridden via TRAIT_NAME)
-        console.log("1️⃣ Deploying SIP-010 trait...");
-        const traitTxId = await deployContract('sip-010-trait.clar', TRAIT_NAME);
-        
-        console.log("\n⏳ Waiting 30 seconds for trait deployment to confirm...");
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        // Skip trait deployment since it already exists
+        console.log("1️⃣ SIP-010 trait already exists, skipping...");
+        console.log("   Contract: ST8DAC2FHJFX599JR491PEAEM0CAXP95JXZ00MBD.sip-010-trait");
         
         // Deploy token contract
         console.log("\n2️⃣ Deploying token contract...");
         const timestamp = Date.now();
-        const tokenContractName = `${TOKEN_BASE_NAME}-${timestamp}`;
-        const tokenTxId = await deployContract('token-contract.clar', tokenContractName);
+        const tokenContractName = `token-contract-${timestamp}`;
+        await deployContract('token-contract.clar', tokenContractName);
         
         console.log(`\n🎉 All contracts deployed successfully!`);
         console.log(`📝 Trait Contract: sip-010-trait`);
