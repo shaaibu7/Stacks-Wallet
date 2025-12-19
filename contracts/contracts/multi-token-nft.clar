@@ -408,34 +408,99 @@
   {token-id: token-id, amount: amount}
 )
 
-;; Burn tokens
+;; Burn tokens with enhanced validation and logging
 (define-public (burn (from principal) (token-id uint) (amount uint))
   (let (
-    (sender-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: from})))
+    (from-key {token-id: token-id, owner: from})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
     (current-supply (default-to u0 (map-get? token-supplies token-id)))
+    (new-balance (- sender-balance amount))
+    (new-supply (- current-supply amount))
   )
     (begin
-      ;; Check authorization
-      (asserts! (or 
-        (is-eq tx-sender from)
-        (is-eq contract-caller from)
-        (default-to false (map-get? operator-approvals {owner: from, operator: tx-sender}))
-      ) ERR_UNAUTHORIZED)
-      
-      ;; Check sufficient balance
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+      (asserts! (is-authorized from tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
       (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
       
       ;; Update balance and supply
-      (map-set token-balances {token-id: token-id, owner: from} (- sender-balance amount))
-      (map-set token-supplies token-id (- current-supply amount))
+      (map-set token-balances from-key new-balance)
+      (map-set token-supplies token-id new-supply)
       
+      ;; Emit detailed burn event
       (print {
         notification: "tokens-burned",
         payload: {
+          operator: tx-sender,
           from: from,
           token-id: token-id,
-          amount: amount
+          amount: amount,
+          balance-before: sender-balance,
+          balance-after: new-balance,
+          supply-before: current-supply,
+          supply-after: new-supply,
+          block-height: block-height
+        }
+      })
+      
+      (ok true)
+    )
+  )
+)
+
+;; ===== ADMINISTRATIVE FUNCTIONS =====
+
+;; Pause/unpause contract (owner only)
+(define-public (set-contract-paused (paused bool))
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+    (var-set contract-paused paused)
+    
+    (print {
+      notification: "contract-pause-changed",
+      payload: {
+        paused: paused,
+        admin: tx-sender,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
+  )
+)
+
+;; Emergency token recovery (owner only, for stuck tokens)
+(define-public (emergency-transfer (from principal) (to principal) (token-id uint) (amount uint))
+  (let (
+    (from-key {token-id: token-id, owner: from})
+    (to-key {token-id: token-id, owner: to})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (receiver-balance (default-to u0 (map-get? token-balances to-key)))
+  )
+    (begin
+      ;; Only contract owner can perform emergency transfers
+      (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+      (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
+      
+      ;; Execute emergency transfer
+      (map-set token-balances from-key (- sender-balance amount))
+      (map-set token-balances to-key (+ receiver-balance amount))
+      
+      ;; Log emergency action
+      (print {
+        notification: "emergency-transfer",
+        payload: {
+          admin: tx-sender,
+          from: from,
+          to: to,
+          token-id: token-id,
+          amount: amount,
+          reason: "emergency-recovery",
+          block-height: block-height
         }
       })
       
