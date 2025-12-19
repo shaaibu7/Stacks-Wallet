@@ -78,6 +78,32 @@
   (is-some (map-get? token-creators token-id))
 )
 
+;; ===== AUTHORIZATION HELPERS =====
+
+;; Check if caller is authorized to act on behalf of owner
+(define-private (is-authorized (owner principal) (operator principal))
+  (or 
+    (is-eq operator owner)
+    (is-eq contract-caller owner)
+    (default-to false (map-get? operator-approvals {owner: owner, operator: operator}))
+  )
+)
+
+;; Check if caller is token creator
+(define-private (is-token-creator (token-id uint) (caller principal))
+  (match (map-get? token-creators token-id)
+    creator (is-eq caller creator)
+    false
+  )
+)
+
+;; Check if caller is contract owner
+(define-private (is-contract-owner (caller principal))
+  (is-eq caller CONTRACT_OWNER)
+)
+
+;; ===== READ-ONLY FUNCTIONS =====
+
 ;; Get balance of a specific token for an owner
 (define-read-only (balance-of (owner principal) (token-id uint))
   (ok (default-to u0 (map-get? token-balances {token-id: token-id, owner: owner})))
