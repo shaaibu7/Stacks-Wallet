@@ -172,14 +172,22 @@
   )
 )
 
-;; Create a new token type
-(define-public (create-token (initial-supply uint) (uri (string-utf8 256)))
+;; Create a new token type with comprehensive validation
+(define-public (create-token (initial-supply uint) (uri (string-utf8 256)) (name (string-utf8 64)))
   (let ((token-id (var-get next-token-id)))
     (begin
-      (asserts! (> initial-supply u0) ERR_INVALID_AMOUNT)
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (is-valid-amount initial-supply) ERR_INVALID_AMOUNT)
+      (asserts! (<= initial-supply MAX_SUPPLY) ERR_SUPPLY_EXCEEDED)
+      (asserts! (> (len uri) u0) ERR_INVALID_URI)
+      (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
+      (asserts! (> (len name) u0) ERR_INVALID_URI)
+      (asserts! (<= (len name) u64) ERR_INVALID_URI)
       
       ;; Set token metadata
       (map-set token-uris token-id uri)
+      (map-set token-names token-id name)
       (map-set token-creators token-id tx-sender)
       (map-set token-supplies token-id initial-supply)
       
@@ -189,13 +197,15 @@
       ;; Increment next token ID
       (var-set next-token-id (+ token-id u1))
       
+      ;; Emit creation event
       (print {
         notification: "token-created",
         payload: {
           token-id: token-id,
           creator: tx-sender,
           initial-supply: initial-supply,
-          uri: uri
+          uri: uri,
+          name: name
         }
       })
       
@@ -204,27 +214,35 @@
   )
 )
 
-;; Mint additional tokens (only creator can mint)
+;; Mint additional tokens with enhanced validation (only creator can mint)
 (define-public (mint (to principal) (token-id uint) (amount uint))
   (let (
     (creator (unwrap! (map-get? token-creators token-id) ERR_TOKEN_NOT_FOUND))
     (current-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: to})))
     (current-supply (default-to u0 (map-get? token-supplies token-id)))
+    (new-supply (+ current-supply amount))
   )
     (begin
-      (asserts! (is-eq tx-sender creator) ERR_UNAUTHORIZED)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (is-valid-recipient to) ERR_INVALID_RECIPIENT)
+      (asserts! (<= new-supply MAX_SUPPLY) ERR_SUPPLY_EXCEEDED)
       
       ;; Update balances and supply
       (map-set token-balances {token-id: token-id, owner: to} (+ current-balance amount))
-      (map-set token-supplies token-id (+ current-supply amount))
+      (map-set token-supplies token-id new-supply)
       
+      ;; Emit mint event
       (print {
         notification: "tokens-minted",
         payload: {
           token-id: token-id,
           to: to,
-          amount: amount
+          amount: amount,
+          new-balance: (+ current-balance amount),
+          new-supply: new-supply
         }
       })
       
