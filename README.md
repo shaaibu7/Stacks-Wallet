@@ -219,18 +219,38 @@ No private keys are required; calls are read-only.
 
 ## Hiro Chainhooks (webhook listener)
 
-This repo includes a minimal example to react to on-chain activity via Hiro Chainhooks.
+This repo integrates **Hiro Chainhooks** to monitor on-chain activity for your SIP-010 token contracts. Chainhooks watch the Stacks blockchain and POST events to your webhook server when `mint` or `transfer` calls occur.
 
-### Chainhook definition
+### Deployed Contracts
 
-- File: `ops/chainhooks/token-contract.yaml`
-- Watches `token-contract` `mint` and `transfer` calls (adjust `contract_identifier` to your deployed address/name).
-- Sends POSTs to your webhook URL with an optional shared secret.
+**Mainnet:**
+- Contract: `SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.token-contract-v2-1766049545741`
+- Trait: `SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.sip-010-trait`
 
-### Webhook server (Node/Express)
+**Testnet:**
+- Contract: `ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.token-contract-1765968837127`
+- Trait: `ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.sip-010-trait`
 
-- Location: `hooks-server/`
-- Quick start:
+### Chainhook Definitions
+
+Two YAML configs are provided:
+
+- **`ops/chainhooks/token-contract.yaml`** (testnet)
+  - Watches testnet contract `mint` and `transfer` calls
+  - Contract: `ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.token-contract-1765968837127`
+
+- **`ops/chainhooks/token-contract-mainnet.yaml`** (mainnet)
+  - Watches mainnet contract v2 `mint` and `transfer` calls
+  - Contract: `SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.token-contract-v2-1766049545741`
+
+Both configs need:
+- `delivery.url`: your deployed webhook endpoint (e.g., `https://your-app.railway.app/hooks/stacks`)
+- `delivery.secret`: shared secret matching `CHAINHOOK_SECRET` in `hooks-server/.env`
+
+### Webhook Server (Node/Express)
+
+- **Location**: `hooks-server/`
+- **Quick start**:
 
   ```bash
   cd hooks-server
@@ -239,19 +259,39 @@ This repo includes a minimal example to react to on-chain activity via Hiro Chai
   npm run dev           # starts on PORT (default 3001)
   ```
 
-- Endpoint: `POST /hooks/stacks`
-  - Verifies HMAC signature if `CHAINHOOK_SECRET` is set (`x-chainhook-signature` header).
-  - Logs `block_height`, `txid`, and `matched_events`. Extend to enqueue or persist events.
+- **Endpoints**:
+  - `POST /hooks/stacks` — receives Chainhook events
+    - Verifies HMAC signature if `CHAINHOOK_SECRET` is set
+    - Stores events in memory (up to `MAX_EVENTS`, default 500)
+  - `GET /activity` — returns recent events
+    - Query params: `?limit=50&network=mainnet&txid=...`
+  - `GET /health` — health check
 
-### Registering the chainhook
+### Frontend Integration
 
-1) Deploy your webhook (public HTTPS).
-2) Update `ops/chainhooks/token-contract.yaml` with:
-   - `contract_identifier`: `<CONTRACT_ADDRESS>.token-contract` (or your timestamped name).
-   - `delivery.url`: your webhook endpoint.
-   - `delivery.secret`: value matching `CHAINHOOK_SECRET`.
-3) Register with the Hiro Chainhooks service (CLI/API). Use `testnet` while iterating.
-4) Trigger your contract functions and watch webhook logs.
+The React frontend can display activity from Chainhooks:
+
+- Set `VITE_HOOKS_SERVER_URL` in `frontend/.env` (e.g., `http://localhost:3001` or your deployed URL)
+- The UI will fetch and display recent `mint`/`transfer` events from `GET /activity`
+
+### Registering Chainhooks
+
+1. **Deploy your webhook server** (public HTTPS):
+   - Options: Railway, Render, Fly.io, or your own VPS
+   - Ensure `POST /hooks/stacks` is accessible
+
+2. **Update chainhook YAML files**:
+   - Set `delivery.url` to your webhook endpoint
+   - Set `delivery.secret` to match `CHAINHOOK_SECRET` in `hooks-server/.env`
+
+3. **Register with Hiro Chainhooks service**:
+   - Use the Hiro Chainhooks CLI/API to register each YAML config
+   - Start with testnet (`token-contract.yaml`) for testing
+
+4. **Verify**:
+   - Trigger `mint` or `transfer` calls on your contract
+   - Check `GET /activity` endpoint for new events
+   - View activity in the frontend UI
 
 ---
 
