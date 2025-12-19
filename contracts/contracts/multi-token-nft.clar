@@ -1,6 +1,22 @@
+;; =====================================================================
 ;; Multi-Token NFT Contract (ERC1155-like)
-;; Supports both fungible and non-fungible tokens in a single contract
+;; =====================================================================
+;; 
+;; A comprehensive multi-token contract supporting both fungible and 
+;; non-fungible tokens in a single contract. This implementation provides:
+;;
+;; - Batch operations for gas efficiency
+;; - Comprehensive validation and security checks
+;; - Emergency controls and administrative functions
+;; - Detailed event logging for transparency
+;; - Optimized storage patterns
+;; - Creator-based token management
+;;
 ;; Version: 2.0.0
+;; Compatible with: Clarity 4
+;; Standard: ERC1155-like (adapted for Stacks)
+;;
+;; ===================================================================== 
 
 ;; ===== CONSTANTS =====
 
@@ -31,6 +47,9 @@
 (define-constant ERR_BATCH_TOO_LARGE (err u122))
 (define-constant ERR_INVALID_URI (err u123))
 
+;; System errors (130-139)
+(define-constant ERR_CONTRACT_PAUSED (err u130))
+
 ;; ===== TOKEN DEFINITION =====
 
 ;; Define the semi-fungible token
@@ -60,7 +79,7 @@
 
 ;; Check if contract is not paused
 (define-private (assert-not-paused)
-  (asserts! (not (var-get contract-paused)) (err u130))
+  (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
 )
 
 ;; Validate token amount
@@ -655,4 +674,18 @@
     total-supply: (default-to u0 (map-get? token-supplies token-id)),
     exists: (token-exists-check token-id)
   }
+)
+
+;; Get contract statistics and metadata
+(define-read-only (get-contract-info)
+  (ok {
+    contract-owner: CONTRACT_OWNER,
+    contract-uri: (var-get contract-uri),
+    contract-paused: (var-get contract-paused),
+    next-token-id: (var-get next-token-id),
+    total-tokens-created: (- (var-get next-token-id) u1),
+    max-supply-per-token: MAX_SUPPLY,
+    max-batch-size: MAX_BATCH_SIZE,
+    version: u"2.0.0"
+  })
 )
