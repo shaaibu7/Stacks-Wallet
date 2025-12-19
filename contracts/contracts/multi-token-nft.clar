@@ -156,18 +156,28 @@
   (ok (default-to false (map-get? operator-approvals {owner: owner, operator: operator})))
 )
 
-;; Set approval for all tokens
+;; Set approval for all tokens with enhanced validation and logging
 (define-public (set-approval-for-all (operator principal) (approved bool))
   (begin
+    ;; Validation
+    (try! (assert-not-paused))
+    (asserts! (not (is-eq tx-sender operator)) ERR_INVALID_RECIPIENT)
+    
+    ;; Update approval
     (map-set operator-approvals {owner: tx-sender, operator: operator} approved)
+    
+    ;; Emit detailed approval event
     (print {
       notification: "approval-for-all",
       payload: {
         owner: tx-sender,
         operator: operator,
-        approved: approved
+        approved: approved,
+        block-height: block-height,
+        timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
       }
     })
+    
     (ok true)
   )
 )
@@ -251,7 +261,7 @@
   )
 )
 
-;; Safe transfer from one address to another
+;; Safe transfer from one address to another with enhanced logging
 (define-public (safe-transfer-from 
   (from principal) 
   (to principal) 
@@ -260,28 +270,41 @@
   (memo (optional (buff 34)))
 )
   (let (
-    (sender-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: from})))
-    (receiver-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: to})))
+    (from-key {token-id: token-id, owner: from})
+    (to-key {token-id: token-id, owner: to})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (receiver-balance (default-to u0 (map-get? token-balances to-key)))
+    (new-sender-balance (- sender-balance amount))
+    (new-receiver-balance (+ receiver-balance amount))
   )
     (begin
-      ;; Check authorization
-      (asserts! (or 
-        (is-eq tx-sender from)
-        (is-eq contract-caller from)
-        (default-to false (map-get? operator-approvals {owner: from, operator: tx-sender}))
-      ) ERR_UNAUTHORIZED)
-      
-      ;; Check sufficient balance
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+      (asserts! (is-authorized from tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-recipient to) ERR_INVALID_RECIPIENT)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
       (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
       
       ;; Update balances
-      (map-set token-balances {token-id: token-id, owner: from} (- sender-balance amount))
-      (map-set token-balances {token-id: token-id, owner: to} (+ receiver-balance amount))
+      (map-set token-balances from-key new-sender-balance)
+      (map-set token-balances to-key new-receiver-balance)
       
-      ;; Print memo if provided
-      (match memo to-print (print to-print) 0x)
+      ;; Handle memo with structured logging
+      (match memo 
+        memo-data (print {
+          notification: "transfer-memo",
+          payload: {
+            token-id: token-id,
+            from: from,
+            to: to,
+            memo: memo-data
+          }
+        })
+        true
+      )
       
+      ;; Emit detailed transfer event
       (print {
         notification: "transfer-single",
         payload: {
@@ -289,7 +312,12 @@
           from: from,
           to: to,
           token-id: token-id,
-          amount: amount
+          amount: amount,
+          from-balance-before: sender-balance,
+          from-balance-after: new-sender-balance,
+          to-balance-before: receiver-balance,
+          to-balance-after: new-receiver-balance,
+          block-height: block-height
         }
       })
       
