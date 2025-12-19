@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import "./App.css";
 import { cvToJSON, fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
+import { useWallet } from "./components/WalletConnect";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -42,6 +43,7 @@ function formatString(cv: any): string {
 }
 
 function App() {
+  const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
   const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
   const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
   const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
@@ -178,6 +180,22 @@ function App() {
             Configure your deployed contract, pick a network, and query token metadata, supply,
             and balances. This UI uses read-only calls (no private keys required).
           </p>
+        </div>
+        <div style={{ marginTop: "1rem" }}>
+          {isConnected ? (
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <span style={{ fontSize: "0.875rem", color: "#fff" }}>
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </span>
+              <button onClick={disconnect} style={{ padding: "0.5rem 1rem" }}>
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button onClick={connect} disabled={isConnecting} style={{ padding: "0.5rem 1rem" }}>
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
+            </button>
+          )}
         </div>
       </header>
 
