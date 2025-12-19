@@ -109,25 +109,30 @@
   (ok (default-to u0 (map-get? token-balances {token-id: token-id, owner: owner})))
 )
 
-;; Get balances of multiple tokens for multiple owners
+;; Get balances of multiple tokens for multiple owners (optimized)
 (define-read-only (balance-of-batch (owners (list 50 principal)) (token-ids (list 50 uint)))
-  (ok (map balance-of-single (zip owners token-ids)))
+  (let ((owner-count (len owners))
+        (token-count (len token-ids)))
+    (begin
+      (asserts! (is-eq owner-count token-count) ERR_BATCH_SIZE_MISMATCH)
+      (asserts! (<= owner-count MAX_BATCH_SIZE) ERR_BATCH_TOO_LARGE)
+      (ok (map balance-of-single (zip-optimized owners token-ids)))
+    )
+  )
 )
 
-;; Helper function for batch balance queries
+;; Optimized helper function for batch balance queries
 (define-private (balance-of-single (owner-token-pair {owner: principal, token-id: uint}))
-  (default-to u0 (map-get? token-balances {
-    token-id: (get token-id owner-token-pair), 
-    owner: (get owner owner-token-pair)
-  }))
+  (default-to u0 (map-get? token-balances owner-token-pair))
 )
 
-;; Helper function to zip two lists
-(define-private (zip (owners (list 50 principal)) (token-ids (list 50 uint)))
-  (map make-pair owners token-ids)
+;; Optimized zip function with direct tuple creation
+(define-private (zip-optimized (owners (list 50 principal)) (token-ids (list 50 uint)))
+  (map create-balance-key owners token-ids)
 )
 
-(define-private (make-pair (owner principal) (token-id uint))
+;; Create balance key tuple directly
+(define-private (create-balance-key (owner principal) (token-id uint))
   {owner: owner, token-id: token-id}
 )
 
