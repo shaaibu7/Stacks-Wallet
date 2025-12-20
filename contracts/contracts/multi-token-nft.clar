@@ -51,6 +51,10 @@
 ;; System errors (130-139)
 (define-constant ERR_CONTRACT_PAUSED (err u130))
 
+;; State management errors (140-149)
+(define-constant ERR_INVALID_STATE (err u140))
+(define-constant ERR_OPERATION_FAILED (err u141))
+
 ;; ===== TOKEN DEFINITION =====
 
 ;; Define the semi-fungible token
