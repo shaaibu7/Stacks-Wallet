@@ -81,6 +81,10 @@
 ;; Permissions and approvals
 (define-map operator-approvals {owner: principal, operator: principal} bool)
 
+;; Token metadata extensions
+(define-map token-descriptions uint (string-utf8 512)) ;; Extended descriptions
+(define-map token-royalties uint {creator: principal, percentage: uint}) ;; Royalty info
+
 ;; ===== VALIDATION HELPERS =====
 
 ;; Check if contract is not paused
