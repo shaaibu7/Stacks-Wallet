@@ -65,6 +65,7 @@
 (define-data-var next-token-id uint u1)
 (define-data-var contract-uri (string-utf8 256) u"https://api.example.com/metadata/")
 (define-data-var contract-paused bool false)
+(define-data-var total-transactions uint u0) ;; Track total number of transactions
 
 ;; ===== DATA MAPS =====
 
