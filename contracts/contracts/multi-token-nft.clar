@@ -747,8 +747,9 @@
     contract-paused: (var-get contract-paused),
     next-token-id: (var-get next-token-id),
     total-tokens-created: (- (var-get next-token-id) u1),
+    total-transactions: (var-get total-transactions),
     max-supply-per-token: MAX_SUPPLY,
     max-batch-size: MAX_BATCH_SIZE,
-    version: u"2.0.0"
+    version: u"2.1.0"
   })
 )
