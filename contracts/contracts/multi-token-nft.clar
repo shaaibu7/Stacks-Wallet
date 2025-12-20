@@ -639,7 +639,29 @@
   )
 )
 
-;; ===== UTILITY AND QUERY FUNCTIONS =====
+;; Set token description (creator only)
+(define-public (set-token-description (token-id uint) (description (string-utf8 512)))
+  (begin
+    (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+    (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+    (asserts! (> (len description) u0) ERR_INVALID_URI)
+    (asserts! (<= (len description) u512) ERR_INVALID_URI)
+    
+    (map-set token-descriptions token-id description)
+    
+    (print {
+      notification: "token-description-updated",
+      payload: {
+        token-id: token-id,
+        creator: tx-sender,
+        new-description: description,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
+  )
+)
 
 ;; Get next token ID
 (define-read-only (get-next-token-id)
