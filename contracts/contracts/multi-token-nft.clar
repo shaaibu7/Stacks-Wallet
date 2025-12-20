@@ -12,9 +12,10 @@
 ;; - Optimized storage patterns
 ;; - Creator-based token management
 ;;
-;; Version: 2.0.0
+;; Version: 2.1.0
 ;; Compatible with: Clarity 4
 ;; Standard: ERC1155-like (adapted for Stacks)
+;; Last Updated: December 2024
 ;;
 ;; ===================================================================== 
 
