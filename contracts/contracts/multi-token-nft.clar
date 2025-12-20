@@ -486,6 +486,9 @@
       (map-set token-balances from-key new-balance)
       (map-set token-supplies token-id new-supply)
       
+      ;; Increment transaction counter
+      (var-set total-transactions (+ (var-get total-transactions) u1))
+      
       ;; Emit detailed burn event
       (print {
         notification: "tokens-burned",
