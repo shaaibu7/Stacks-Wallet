@@ -226,8 +226,14 @@
   )
 )
 
-;; Create a new token type with comprehensive validation
-(define-public (create-token (initial-supply uint) (uri (string-utf8 256)) (name (string-utf8 64)))
+;; Create a new token type with comprehensive validation and royalty support
+(define-public (create-token-with-royalty 
+  (initial-supply uint) 
+  (uri (string-utf8 256)) 
+  (name (string-utf8 64))
+  (description (string-utf8 512))
+  (royalty-percentage uint)
+)
   (let ((token-id (var-get next-token-id)))
     (begin
       ;; Comprehensive validation
@@ -238,12 +244,17 @@
       (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
       (asserts! (> (len name) u0) ERR_INVALID_URI)
       (asserts! (<= (len name) u64) ERR_INVALID_URI)
+      (asserts! (> (len description) u0) ERR_INVALID_URI)
+      (asserts! (<= (len description) u512) ERR_INVALID_URI)
+      (asserts! (is-valid-royalty royalty-percentage) ERR_INVALID_AMOUNT)
       
       ;; Set token metadata
       (map-set token-uris token-id uri)
       (map-set token-names token-id name)
+      (map-set token-descriptions token-id description)
       (map-set token-creators token-id tx-sender)
       (map-set token-supplies token-id initial-supply)
+      (map-set token-royalties token-id {creator: tx-sender, percentage: royalty-percentage})
       
       ;; Mint initial supply to creator
       (map-set token-balances {token-id: token-id, owner: tx-sender} initial-supply)
@@ -259,7 +270,9 @@
           creator: tx-sender,
           initial-supply: initial-supply,
           uri: uri,
-          name: name
+          name: name,
+          description: description,
+          royalty-percentage: royalty-percentage
         }
       })
       
