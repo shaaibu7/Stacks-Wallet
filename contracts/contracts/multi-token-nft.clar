@@ -387,8 +387,8 @@
 (define-public (safe-batch-transfer-from 
   (from principal) 
   (to principal) 
-  (token-ids (list 50 uint)) 
-  (amounts (list 50 uint))
+  (token-ids (list 100 uint)) 
+  (amounts (list 100 uint))
   (memo (optional (buff 34)))
 )
   (let ((ids-count (len token-ids))
@@ -457,7 +457,7 @@
 )
 
 ;; Create transfer data pairs
-(define-private (zip-transfer-data (token-ids (list 50 uint)) (amounts (list 50 uint)))
+(define-private (zip-transfer-data (token-ids (list 100 uint)) (amounts (list 100 uint)))
   (map create-transfer-item token-ids amounts)
 )
 
