@@ -144,7 +144,7 @@
 )
 
 ;; Get balances of multiple tokens for multiple owners (optimized)
-(define-read-only (balance-of-batch (owners (list 50 principal)) (token-ids (list 50 uint)))
+(define-read-only (balance-of-batch (owners (list 100 principal)) (token-ids (list 100 uint)))
   (let ((owner-count (len owners))
         (token-count (len token-ids)))
     (begin
@@ -161,7 +161,7 @@
 )
 
 ;; Optimized zip function with direct tuple creation
-(define-private (zip-optimized (owners (list 50 principal)) (token-ids (list 50 uint)))
+(define-private (zip-optimized (owners (list 100 principal)) (token-ids (list 100 uint)))
   (map create-balance-key owners token-ids)
 )
 
