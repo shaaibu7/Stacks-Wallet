@@ -9,6 +9,8 @@
     "test:report": "vitest run -- --coverage --costs",
     "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
     "deploy": "tsx scripts/deploy.ts",
+    "deploy-multi-token": "tsx scripts/deploy-multi-token.ts",
+    "monitor-and-deploy": "tsx scripts/monitor-and-deploy.ts",
     "deploy-wallet": "tsx scripts/deploy-wallet.ts",
     "interact": "tsx scripts/interact.ts",
     "interact-simple": "tsx scripts/interact-simple.ts",
