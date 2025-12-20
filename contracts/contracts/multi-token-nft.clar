@@ -26,7 +26,7 @@
 
 ;; Maximum values for safety
 (define-constant MAX_SUPPLY u1000000000000) ;; 1 trillion max supply per token
-(define-constant MAX_BATCH_SIZE u50)
+(define-constant MAX_BATCH_SIZE u100) ;; Increased from 50 to 100
 (define-constant MAX_URI_LENGTH u256)
 
 ;; ===== ERROR CODES =====
