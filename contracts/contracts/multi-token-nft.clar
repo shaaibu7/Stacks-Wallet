@@ -185,6 +185,16 @@
   (ok (var-get contract-uri))
 )
 
+;; Get token description
+(define-read-only (get-token-description (token-id uint))
+  (ok (map-get? token-descriptions token-id))
+)
+
+;; Get token royalty info
+(define-read-only (get-token-royalty (token-id uint))
+  (ok (map-get? token-royalties token-id))
+)
+
 ;; Check if operator is approved
 (define-read-only (is-approved-for-all (owner principal) (operator principal))
   (ok (default-to false (map-get? operator-approvals {owner: owner, operator: operator})))
