@@ -107,6 +107,11 @@
   (is-some (map-get? token-creators token-id))
 )
 
+;; Validate royalty percentage (0-10000 basis points = 0-100%)
+(define-private (is-valid-royalty (percentage uint))
+  (<= percentage u10000)
+)
+
 ;; ===== AUTHORIZATION HELPERS =====
 
 ;; Check if caller is authorized to act on behalf of owner
