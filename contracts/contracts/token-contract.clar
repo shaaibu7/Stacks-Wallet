@@ -66,6 +66,56 @@
   (is-eq caller CONTRACT_OWNER)
 )
 
+;; ===== EVENT LOGGING FUNCTIONS =====
+
+;; Log transfer event
+(define-private (log-transfer (from principal) (to principal) (amount uint))
+  (print {
+    event: "transfer",
+    from: from,
+    to: to,
+    amount: amount,
+    block-height: block-height,
+    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+  })
+)
+
+;; Log mint event
+(define-private (log-mint (to principal) (amount uint))
+  (print {
+    event: "mint",
+    to: to,
+    amount: amount,
+    total-supply: (ft-get-supply clarity-coin),
+    block-height: block-height,
+    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+  })
+)
+
+;; Log approval event
+(define-private (log-approval (owner principal) (spender principal) (amount uint))
+  (print {
+    event: "approval",
+    owner: owner,
+    spender: spender,
+    amount: amount,
+    block-height: block-height,
+    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+  })
+)
+
+;; Log burn event
+(define-private (log-burn (from principal) (amount uint))
+  (print {
+    event: "burn",
+    from: from,
+    amount: amount,
+    total-supply: (ft-get-supply clarity-coin),
+    block-height: block-height,
+    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+  })
+)
+
 ;; ===== VALIDATION HELPERS =====
 
 ;; Check if contract is not paused
