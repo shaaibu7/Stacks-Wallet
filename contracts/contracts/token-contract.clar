@@ -380,10 +380,22 @@
   (memo (optional (buff 34)))
 )
   (begin
-    ;; #[filter(amount, recipient)]
+    ;; Validation
+    (try! (assert-not-paused))
     (asserts! (or (is-eq tx-sender sender) (is-eq contract-caller sender)) ERR_NOT_TOKEN_OWNER)
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (asserts! (is-valid-recipient sender recipient) ERR_SELF_TRANSFER)
+    (asserts! (>= (ft-get-balance clarity-coin sender) amount) ERR_INSUFFICIENT_BALANCE)
+    
+    ;; Execute transfer
     (try! (ft-transfer? clarity-coin amount sender recipient))
+    
+    ;; Log event
+    (log-transfer sender recipient amount)
+    
+    ;; Handle memo
     (match memo to-print (print to-print) 0x)
+    
     (ok true)
   )
 )
