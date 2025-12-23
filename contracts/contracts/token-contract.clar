@@ -217,6 +217,72 @@
   (ok (var-get contract-paused))
 )
 
+;; ===== ALLOWANCE FUNCTIONS =====
+
+;; Approve spender to spend amount on behalf of owner
+(define-public (approve (spender principal) (amount uint))
+  (begin
+    ;; Validation
+    (try! (assert-not-paused))
+    (asserts! (not (is-eq tx-sender spender)) ERR_INVALID_RECIPIENT)
+    (asserts! (<= amount MAX_UINT) ERR_ALLOWANCE_OVERFLOW)
+    
+    ;; Set allowance
+    (map-set allowances {owner: tx-sender, spender: spender} amount)
+    
+    ;; Log event
+    (log-approval tx-sender spender amount)
+    
+    (ok true)
+  )
+)
+
+;; Increase allowance by amount
+(define-public (increase-allowance (spender principal) (amount uint))
+  (let ((current-allowance (default-to u0 (map-get? allowances {owner: tx-sender, spender: spender}))))
+    (begin
+      ;; Validation
+      (try! (assert-not-paused))
+      (asserts! (not (is-eq tx-sender spender)) ERR_INVALID_RECIPIENT)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (<= (+ current-allowance amount) MAX_UINT) ERR_ALLOWANCE_OVERFLOW)
+      
+      ;; Update allowance
+      (let ((new-allowance (+ current-allowance amount)))
+        (map-set allowances {owner: tx-sender, spender: spender} new-allowance)
+        
+        ;; Log event
+        (log-approval tx-sender spender new-allowance)
+        
+        (ok true)
+      )
+    )
+  )
+)
+
+;; Decrease allowance by amount
+(define-public (decrease-allowance (spender principal) (amount uint))
+  (let ((current-allowance (default-to u0 (map-get? allowances {owner: tx-sender, spender: spender}))))
+    (begin
+      ;; Validation
+      (try! (assert-not-paused))
+      (asserts! (not (is-eq tx-sender spender)) ERR_INVALID_RECIPIENT)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (>= current-allowance amount) ERR_ALLOWANCE_UNDERFLOW)
+      
+      ;; Update allowance
+      (let ((new-allowance (- current-allowance amount)))
+        (map-set allowances {owner: tx-sender, spender: spender} new-allowance)
+        
+        ;; Log event
+        (log-approval tx-sender spender new-allowance)
+        
+        (ok true)
+      )
+    )
+  )
+)
+
 ;; Properly updates token URI by emitting a SIP-019 token metadata update notification
 (define-public (set-token-uri (value (string-utf8 256)))
     (begin
