@@ -323,8 +323,23 @@
 ;; Properly updates token URI by emitting a SIP-019 token metadata update notification
 (define-public (set-token-uri (value (string-utf8 256)))
     (begin
-        (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_OWNER_ONLY)
+        ;; Validation
+        (try! (assert-not-paused))
+        (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+        (asserts! (> (len value) u0) ERR_INVALID_PARAMETER)
+        
+        ;; Update URI
         (var-set token-uri value)
+        
+        ;; Log events
+        (print {
+          event: "token-uri-updated",
+          new-uri: value,
+          admin: tx-sender,
+          block-height: block-height,
+          timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+        })
+        
         (ok (print {
               notification: "token-metadata-update",
               payload: {
@@ -340,8 +355,19 @@
 ;; Only the contract deployer can perform this operation.
 (define-public (mint (amount uint) (recipient principal))
   (begin
-    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_OWNER_ONLY)
-    (ft-mint? clarity-coin amount recipient)
+    ;; Validation
+    (try! (assert-not-paused))
+    (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+    (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+    (asserts! (not (is-eq recipient tx-sender)) ERR_INVALID_RECIPIENT)
+    
+    ;; Execute mint
+    (try! (ft-mint? clarity-coin amount recipient))
+    
+    ;; Log event
+    (log-mint recipient amount)
+    
+    (ok true)
   )
 )
 
