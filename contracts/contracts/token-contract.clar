@@ -442,3 +442,47 @@
     (ok true)
   )
 )
+
+;; ===== CONTRACT INFO FUNCTIONS =====
+
+;; Get comprehensive contract information
+(define-read-only (get-contract-info)
+  (ok {
+    name: TOKEN_NAME,
+    symbol: TOKEN_SYMBOL,
+    decimals: TOKEN_DECIMALS,
+    total-supply: (ft-get-supply clarity-coin),
+    contract-owner: CONTRACT_OWNER,
+    contract-paused: (var-get contract-paused),
+    token-uri: (var-get token-uri),
+    version: u"2.0.0"
+  })
+)
+
+;; Get user's complete token information
+(define-read-only (get-user-info (user principal))
+  (ok {
+    balance: (ft-get-balance clarity-coin user),
+    is-contract-owner: (is-eq user CONTRACT_OWNER)
+  })
+)
+
+;; Get allowance information for multiple spenders
+(define-read-only (get-allowances (owner principal) (spenders (list 10 principal)))
+  (ok (map get-single-allowance 
+    (map create-allowance-key 
+      (list owner owner owner owner owner owner owner owner owner owner) 
+      spenders)))
+)
+
+;; Helper for batch allowance queries
+(define-private (create-allowance-key (owner principal) (spender principal))
+  {owner: owner, spender: spender}
+)
+
+(define-private (get-single-allowance (key {owner: principal, spender: principal}))
+  {
+    spender: (get spender key),
+    allowance: (default-to u0 (map-get? allowances key))
+  }
+)
