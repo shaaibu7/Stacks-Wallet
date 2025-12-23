@@ -17,7 +17,12 @@
     "interact-wallet": "tsx scripts/interact-wallet-x.ts",
     "wallet-demo": "tsx scripts/wallet-x-demo.ts",
     "wallet-simulate": "tsx scripts/wallet-x-simulation.ts",
-    "check-account": "tsx scripts/check-account.ts"
+    "check-account": "tsx scripts/check-account.ts",
+    "check-pending": "tsx scripts/check-pending-transactions.ts",
+    "replace-stuck-txs": "tsx scripts/replace-stuck-transactions.ts",
+    "cancel-stuck-txs": "tsx scripts/cancel-stuck-transactions.ts",
+    "replace-mint-txs": "tsx scripts/replace-mint-transactions.ts",
+    "fix-all-pending": "tsx scripts/fix-all-pending.ts"
   },
   "author": "",
   "license": "ISC",
