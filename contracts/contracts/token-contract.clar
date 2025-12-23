@@ -198,6 +198,25 @@
   (ok (some (var-get token-uri)))
 )
 
+;; ===== ALLOWANCE READ-ONLY FUNCTIONS =====
+
+;; Get allowance amount for spender from owner
+(define-read-only (get-allowance (owner principal) (spender principal))
+  (ok (default-to u0 (map-get? allowances {owner: owner, spender: spender})))
+)
+
+;; Check if spender has sufficient allowance
+(define-read-only (has-allowance (owner principal) (spender principal) (amount uint))
+  (let ((current-allowance (default-to u0 (map-get? allowances {owner: owner, spender: spender}))))
+    (ok (>= current-allowance amount))
+  )
+)
+
+;; Get contract pause status
+(define-read-only (get-contract-paused)
+  (ok (var-get contract-paused))
+)
+
 ;; Properly updates token URI by emitting a SIP-019 token metadata update notification
 (define-public (set-token-uri (value (string-utf8 256)))
     (begin
