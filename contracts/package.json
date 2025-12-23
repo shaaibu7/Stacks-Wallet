@@ -22,7 +22,8 @@
     "replace-stuck-txs": "tsx scripts/replace-stuck-transactions.ts",
     "cancel-stuck-txs": "tsx scripts/cancel-stuck-transactions.ts",
     "replace-mint-txs": "tsx scripts/replace-mint-transactions.ts",
-    "fix-all-pending": "tsx scripts/fix-all-pending.ts"
+    "fix-all-pending": "tsx scripts/fix-all-pending.ts",
+    "simple-mint": "tsx scripts/simple-mint.ts"
   },
   "author": "",
   "license": "ISC",
