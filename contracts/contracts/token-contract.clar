@@ -283,6 +283,43 @@
   )
 )
 
+;; Transfer tokens from owner to recipient using allowance
+(define-public (transfer-from 
+  (owner principal) 
+  (recipient principal) 
+  (amount uint) 
+  (memo (optional (buff 34)))
+)
+  (let (
+    (current-allowance (default-to u0 (map-get? allowances {owner: owner, spender: tx-sender})))
+    (owner-balance (ft-get-balance clarity-coin owner))
+  )
+    (begin
+      ;; Validation
+      (try! (assert-not-paused))
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (is-valid-recipient owner recipient) ERR_SELF_TRANSFER)
+      (asserts! (>= owner-balance amount) ERR_INSUFFICIENT_BALANCE)
+      (asserts! (>= current-allowance amount) ERR_INSUFFICIENT_ALLOWANCE)
+      
+      ;; Execute transfer
+      (try! (ft-transfer? clarity-coin amount owner recipient))
+      
+      ;; Update allowance
+      (map-set allowances {owner: owner, spender: tx-sender} (- current-allowance amount))
+      
+      ;; Log events
+      (log-transfer owner recipient amount)
+      (log-approval owner tx-sender (- current-allowance amount))
+      
+      ;; Handle memo
+      (match memo to-print (print to-print) 0x)
+      
+      (ok true)
+    )
+  )
+)
+
 ;; Properly updates token URI by emitting a SIP-019 token metadata update notification
 (define-public (set-token-uri (value (string-utf8 256)))
     (begin
