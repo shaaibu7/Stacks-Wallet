@@ -399,3 +399,46 @@
     (ok true)
   )
 )
+
+;; ===== BURN FUNCTION =====
+
+;; Burn tokens from caller's balance
+(define-public (burn (amount uint))
+  (let ((caller-balance (ft-get-balance clarity-coin tx-sender)))
+    (begin
+      ;; Validation
+      (try! (assert-not-paused))
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (>= caller-balance amount) ERR_INSUFFICIENT_BALANCE)
+      
+      ;; Execute burn
+      (try! (ft-burn? clarity-coin amount tx-sender))
+      
+      ;; Log event
+      (log-burn tx-sender amount)
+      
+      (ok true)
+    )
+  )
+)
+
+;; ===== ADMINISTRATIVE FUNCTIONS =====
+
+;; Pause/unpause contract (owner only)
+(define-public (set-contract-paused (paused bool))
+  (begin
+    (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+    (var-set contract-paused paused)
+    
+    ;; Log event
+    (print {
+      event: "contract-pause-changed",
+      paused: paused,
+      admin: tx-sender,
+      block-height: block-height,
+      timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+    })
+    
+    (ok true)
+  )
+)
