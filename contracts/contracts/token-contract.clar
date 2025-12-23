@@ -44,6 +44,28 @@
 ;; Allowances: owner -> spender -> amount
 (define-map allowances {owner: principal, spender: principal} uint)
 
+;; ===== HELPER FUNCTIONS =====
+
+;; Check if contract is not paused
+(define-private (assert-not-paused)
+  (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
+)
+
+;; Validate amount is greater than zero
+(define-private (is-valid-amount (amount uint))
+  (> amount u0)
+)
+
+;; Validate recipient is not the same as sender
+(define-private (is-valid-recipient (sender principal) (recipient principal))
+  (not (is-eq sender recipient))
+)
+
+;; Check if caller is contract owner
+(define-private (is-contract-owner (caller principal))
+  (is-eq caller CONTRACT_OWNER)
+)
+
 ;; ===== VALIDATION HELPERS =====
 
 ;; Check if contract is not paused
