@@ -48,7 +48,10 @@
 
 ;; Check if contract is not paused
 (define-private (assert-not-paused)
-  (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
+  (begin
+    (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
+    (ok true)
+  )
 )
 
 ;; Validate amount is greater than zero
@@ -74,9 +77,7 @@
     event: "transfer",
     from: from,
     to: to,
-    amount: amount,
-    block-height: block-height,
-    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+    amount: amount
   })
 )
 
@@ -86,9 +87,7 @@
     event: "mint",
     to: to,
     amount: amount,
-    total-supply: (ft-get-supply clarity-coin),
-    block-height: block-height,
-    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+    total-supply: (ft-get-supply clarity-coin)
   })
 )
 
@@ -98,9 +97,7 @@
     event: "approval",
     owner: owner,
     spender: spender,
-    amount: amount,
-    block-height: block-height,
-    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+    amount: amount
   })
 )
 
@@ -110,28 +107,10 @@
     event: "burn",
     from: from,
     amount: amount,
-    total-supply: (ft-get-supply clarity-coin),
-    block-height: block-height,
-    timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+    total-supply: (ft-get-supply clarity-coin)
   })
 )
 
-;; ===== VALIDATION HELPERS =====
-
-;; Check if contract is not paused
-(define-private (assert-not-paused)
-  (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
-)
-
-;; Validate amount is positive
-(define-private (is-valid-amount (amount uint))
-  (> amount u0)
-)
-
-;; Validate recipient is not zero address
-(define-private (is-valid-recipient (recipient principal))
-  (not (is-eq recipient 'SP000000000000000000002Q6VF78))
-)
 
 ;; ===== EVENT HELPERS =====
 
@@ -141,8 +120,7 @@
     event: "transfer",
     from: from,
     to: to,
-    amount: amount,
-    block-height: block-height
+    amount: amount
   })
 )
 
@@ -152,8 +130,7 @@
     event: "approval",
     owner: owner,
     spender: spender,
-    amount: amount,
-    block-height: block-height
+    amount: amount
   })
 )
 
@@ -163,8 +140,7 @@
     event: "mint",
     to: to,
     amount: amount,
-    total-supply: (ft-get-supply clarity-coin),
-    block-height: block-height
+    total-supply: (ft-get-supply clarity-coin)
   })
 )
 
@@ -335,19 +311,19 @@
         (print {
           event: "token-uri-updated",
           new-uri: value,
-          admin: tx-sender,
-          block-height: block-height,
-          timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+          admin: tx-sender
         })
         
-        (ok (print {
-              notification: "token-metadata-update",
-              payload: {
-                contract-id: CONTRACT_OWNER,
-                token-class: "ft"
-              }
-            })
-        )
+        ;; Emit SIP-019 notification
+        (print {
+          notification: "token-metadata-update",
+          payload: {
+            contract-id: CONTRACT_OWNER,
+            token-class: "ft"
+          }
+        })
+        
+        (ok true)
     )
 )
 
@@ -434,9 +410,7 @@
     (print {
       event: "contract-pause-changed",
       paused: paused,
-      admin: tx-sender,
-      block-height: block-height,
-      timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
+      admin: tx-sender
     })
     
     (ok true)
