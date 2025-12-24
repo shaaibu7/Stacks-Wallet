@@ -261,3 +261,41 @@
     
     ;; Execute operations (simplified)
     (ok (len operations))))
+;; Administrative functions
+(define-data-var contract-paused bool false)
+
+;; Pause/unpause contract
+(define-public (set-paused (paused bool))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+    (var-set contract-paused paused)
+    (ok paused)))
+
+;; Check if contract is paused
+(define-read-only (is-paused)
+  (var-get contract-paused))
+
+;; Emergency function to invalidate all signatures for a user
+(define-public (emergency-invalidate-nonce (user principal))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_UNAUTHORIZED)
+    (let ((current-nonce (get-nonce user)))
+      (map-set nonces user (+ current-nonce u1000))
+      (ok (+ current-nonce u1000)))))
+
+;; Utility functions for external integrations
+(define-read-only (get-chain-id)
+  DOMAIN_CHAIN_ID)
+
+(define-read-only (get-contract-version)
+  DOMAIN_VERSION)
+
+(define-read-only (get-contract-name)
+  DOMAIN_NAME)
+
+;; Verify any typed data hash
+(define-public (verify-typed-data
+  (struct-hash (buff 32))
+  (signature (buff 65))
+  (signer principal))
+  (ok (verify-typed-signature struct-hash signature signer)))
