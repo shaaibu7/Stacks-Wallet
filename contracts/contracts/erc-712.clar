@@ -145,3 +145,40 @@
 ;; Get allowance
 (define-read-only (get-allowance (owner principal) (spender principal))
   (default-to u0 (map-get? allowances { owner: owner, spender: spender })))
+;; Meta-transaction support
+(define-constant META_TX_TYPEHASH
+  0x23e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7)
+
+;; Meta-transaction structure
+(define-private (hash-meta-tx
+  (from principal)
+  (to principal)
+  (value uint)
+  (data (buff 1024))
+  (nonce uint))
+  (let ((meta-tx-data (concat
+    (principal-to-buff from)
+    (principal-to-buff to)
+    (int-to-ascii value)
+    data
+    (int-to-ascii nonce))))
+    (hash-struct "MetaTransaction(address from,address to,uint256 value,bytes data,uint256 nonce)" meta-tx-data)))
+
+;; Execute meta-transaction
+(define-public (execute-meta-transaction
+  (from principal)
+  (to principal)
+  (value uint)
+  (data (buff 1024))
+  (signature (buff 65)))
+  (let ((current-nonce (get-nonce from))
+        (meta-tx-hash (hash-meta-tx from to value data current-nonce)))
+    (asserts! (verify-typed-signature meta-tx-hash signature from) ERR_INVALID_SIGNATURE)
+    (asserts! (not (is-signature-used signature)) ERR_ALREADY_USED)
+    
+    ;; Mark signature as used and increment nonce
+    (mark-signature-used signature)
+    (increment-nonce from)
+    
+    ;; Execute the transaction (simplified - would call actual function)
+    (ok { from: from, to: to, value: value, nonce: current-nonce })))
