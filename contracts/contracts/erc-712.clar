@@ -89,3 +89,30 @@
 ;; Convert principal to buffer (simplified)
 (define-private (principal-to-buff (p principal))
   (unwrap-panic (to-consensus-buff? p)))
+;; Signature verification
+(define-private (verify-signature 
+  (message-hash (buff 32))
+  (signature (buff 65))
+  (signer principal))
+  (let ((recovered-pubkey (secp256k1-recover? message-hash signature)))
+    (match recovered-pubkey
+      pubkey (is-eq signer (principal-of? pubkey))
+      false)))
+
+;; Check if signature has been used (replay protection)
+(define-private (is-signature-used (signature (buff 65)))
+  (default-to false (map-get? used-signatures signature)))
+
+;; Mark signature as used
+(define-private (mark-signature-used (signature (buff 65)))
+  (map-set used-signatures signature true))
+
+;; Verify typed data signature
+(define-private (verify-typed-signature
+  (struct-hash (buff 32))
+  (signature (buff 65))
+  (signer principal))
+  (let ((typed-hash (create-typed-data-hash struct-hash)))
+    (and 
+      (not (is-signature-used signature))
+      (verify-signature typed-hash signature signer))))
