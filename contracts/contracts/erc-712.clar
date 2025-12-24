@@ -182,3 +182,46 @@
     
     ;; Execute the transaction (simplified - would call actual function)
     (ok { from: from, to: to, value: value, nonce: current-nonce })))
+;; Delegation functionality
+(define-map delegations principal principal)
+(define-map voting-power principal uint)
+
+(define-constant DELEGATION_TYPEHASH
+  0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef)
+
+;; Hash delegation data
+(define-private (hash-delegation
+  (delegator principal)
+  (delegatee principal)
+  (nonce uint)
+  (expiry uint))
+  (let ((delegation-data (concat
+    (principal-to-buff delegator)
+    (principal-to-buff delegatee)
+    (int-to-ascii nonce)
+    (int-to-ascii expiry))))
+    (hash-struct "Delegation(address delegator,address delegatee,uint256 nonce,uint256 expiry)" delegation-data)))
+
+;; Delegate by signature
+(define-public (delegate-by-sig
+  (delegator principal)
+  (delegatee principal)
+  (expiry uint)
+  (signature (buff 65)))
+  (let ((current-nonce (get-nonce delegator))
+        (delegation-hash (hash-delegation delegator delegatee current-nonce expiry)))
+    (asserts! (< block-height expiry) ERR_EXPIRED)
+    (asserts! (verify-typed-signature delegation-hash signature delegator) ERR_INVALID_SIGNATURE)
+    (asserts! (not (is-signature-used signature)) ERR_ALREADY_USED)
+    
+    ;; Mark signature as used and increment nonce
+    (mark-signature-used signature)
+    (increment-nonce delegator)
+    
+    ;; Set delegation
+    (map-set delegations delegator delegatee)
+    (ok true)))
+
+;; Get delegate
+(define-read-only (get-delegate (delegator principal))
+  (map-get? delegations delegator))
