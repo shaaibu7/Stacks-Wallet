@@ -225,3 +225,39 @@
 ;; Get delegate
 (define-read-only (get-delegate (delegator principal))
   (map-get? delegations delegator))
+;; Batch operations
+(define-constant BATCH_TYPEHASH
+  0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef)
+
+;; Batch operation structure
+(define-private (hash-batch-operation
+  (operations (list 10 { to: principal, value: uint, data: (buff 256) }))
+  (nonce uint))
+  (let ((batch-data (fold concat-operation operations 0x00)))
+    (hash-struct "BatchOperation(Operation[] operations,uint256 nonce)" 
+                 (concat batch-data (int-to-ascii nonce)))))
+
+;; Helper to concatenate operation data
+(define-private (concat-operation 
+  (op { to: principal, value: uint, data: (buff 256) })
+  (acc (buff 1024)))
+  (concat acc 
+    (concat 
+      (principal-to-buff (get to op))
+      (concat (int-to-ascii (get value op)) (get data op)))))
+
+;; Execute batch operations
+(define-public (execute-batch
+  (operations (list 10 { to: principal, value: uint, data: (buff 256) }))
+  (signature (buff 65)))
+  (let ((current-nonce (get-nonce tx-sender))
+        (batch-hash (hash-batch-operation operations current-nonce)))
+    (asserts! (verify-typed-signature batch-hash signature tx-sender) ERR_INVALID_SIGNATURE)
+    (asserts! (not (is-signature-used signature)) ERR_ALREADY_USED)
+    
+    ;; Mark signature as used and increment nonce
+    (mark-signature-used signature)
+    (increment-nonce tx-sender)
+    
+    ;; Execute operations (simplified)
+    (ok (len operations))))
