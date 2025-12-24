@@ -54,3 +54,38 @@
 ;; Get domain separator
 (define-read-only (get-domain-separator)
   (var-get domain-separator))
+;; Structured data types
+(define-map struct-hashes 
+  { struct-type: (string-ascii 32), data: (buff 1024) }
+  (buff 32))
+
+;; Hash structured data according to EIP-712
+(define-private (hash-struct (struct-type (string-ascii 32)) (data (buff 1024)))
+  (let ((type-hash (sha256 struct-type)))
+    (sha256 (concat type-hash data))))
+
+;; Create EIP-712 compliant hash
+(define-private (create-typed-data-hash (struct-hash (buff 32)))
+  (sha256 (concat 
+    0x1901  ;; EIP-191 prefix
+    (var-get domain-separator)
+    struct-hash)))
+
+;; Permit structure for token approvals
+(define-private (hash-permit 
+  (owner principal)
+  (spender principal) 
+  (value uint)
+  (nonce uint)
+  (deadline uint))
+  (let ((permit-data (concat
+    (principal-to-buff owner)
+    (principal-to-buff spender)
+    (int-to-ascii value)
+    (int-to-ascii nonce)
+    (int-to-ascii deadline))))
+    (hash-struct "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)" permit-data)))
+
+;; Convert principal to buffer (simplified)
+(define-private (principal-to-buff (p principal))
+  (unwrap-panic (to-consensus-buff? p)))
