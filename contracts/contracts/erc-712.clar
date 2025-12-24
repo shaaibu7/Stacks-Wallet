@@ -299,3 +299,44 @@
   (signature (buff 65))
   (signer principal))
   (ok (verify-typed-signature struct-hash signature signer)))
+;; Additional helper functions
+
+;; Convert integer to ASCII representation (simplified)
+(define-private (int-to-ascii (value uint))
+  (if (is-eq value u0)
+    0x30  ;; "0"
+    (unwrap-panic (to-consensus-buff? value))))
+
+;; Get typed data hash for external verification
+(define-read-only (get-typed-data-hash (struct-hash (buff 32)))
+  (create-typed-data-hash struct-hash))
+
+;; Check if a specific signature is valid for given data
+(define-read-only (is-valid-signature
+  (struct-hash (buff 32))
+  (signature (buff 65))
+  (signer principal))
+  (and 
+    (not (is-signature-used signature))
+    (verify-typed-signature struct-hash signature signer)))
+
+;; Get contract info
+(define-read-only (get-contract-info)
+  {
+    name: DOMAIN_NAME,
+    version: DOMAIN_VERSION,
+    chain-id: DOMAIN_CHAIN_ID,
+    domain-separator: (var-get domain-separator),
+    owner: CONTRACT_OWNER,
+    paused: (var-get contract-paused)
+  })
+
+;; Contract initialization complete
+;; This ERC-712 implementation provides:
+;; - Structured data hashing according to EIP-712
+;; - Signature verification with replay protection
+;; - Permit functionality for gasless approvals
+;; - Meta-transaction support
+;; - Delegation with signature verification
+;; - Batch operations
+;; - Administrative controls
