@@ -116,3 +116,32 @@
     (and 
       (not (is-signature-used signature))
       (verify-signature typed-hash signature signer))))
+;; Token allowances for permit functionality
+(define-map allowances 
+  { owner: principal, spender: principal }
+  uint)
+
+;; Permit function - allows gasless approvals
+(define-public (permit
+  (owner principal)
+  (spender principal)
+  (value uint)
+  (deadline uint)
+  (signature (buff 65)))
+  (let ((current-nonce (get-nonce owner))
+        (permit-hash (hash-permit owner spender value current-nonce deadline)))
+    (asserts! (< block-height deadline) ERR_EXPIRED)
+    (asserts! (verify-typed-signature permit-hash signature owner) ERR_INVALID_SIGNATURE)
+    (asserts! (not (is-signature-used signature)) ERR_ALREADY_USED)
+    
+    ;; Mark signature as used and increment nonce
+    (mark-signature-used signature)
+    (increment-nonce owner)
+    
+    ;; Set allowance
+    (map-set allowances { owner: owner, spender: spender } value)
+    (ok true)))
+
+;; Get allowance
+(define-read-only (get-allowance (owner principal) (spender principal))
+  (default-to u0 (map-get? allowances { owner: owner, spender: spender })))
