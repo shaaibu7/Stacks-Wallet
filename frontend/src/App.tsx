@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import "./App.css";
 import { cvToJSON, fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
-import { useWallet } from "./components/WalletConnect";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -43,7 +42,6 @@ function formatString(cv: any): string {
 }
 
 function App() {
-  const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
   const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
   const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
   const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
@@ -54,8 +52,6 @@ function App() {
   const [balance, setBalance] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activity, setActivity] = useState<any[]>([]);
-  const [activityLoading, setActivityLoading] = useState(false);
 
   const stacksNetwork = useMemo(() => buildNetwork(network), [network]);
   const apiBaseUrl = stacksNetwork.client.baseUrl;
@@ -145,57 +141,16 @@ function App() {
     setError(null);
   };
 
-  const hooksServerUrl = import.meta.env.VITE_HOOKS_SERVER_URL as string | undefined;
-
-  const loadActivity = async () => {
-    if (!hooksServerUrl) {
-      setError("VITE_HOOKS_SERVER_URL not configured in .env");
-      return;
-    }
-    try {
-      setActivityLoading(true);
-      setError(null);
-      const url = new URL(`${hooksServerUrl}/activity`);
-      url.searchParams.set("limit", "20");
-      url.searchParams.set("network", network);
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error(`Activity API error: ${res.statusText}`);
-      const data = await res.json();
-      setActivity(data.items || []);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.message ?? "Failed to load activity");
-    } finally {
-      setActivityLoading(false);
-    }
-  };
-
   return (
     <div className="page">
       <header className="hero">
-      <div>
+        <div>
           <p className="eyebrow">Stacks Wallet UI</p>
           <h1>Interact with the SIP-010 token</h1>
           <p className="lede">
             Configure your deployed contract, pick a network, and query token metadata, supply,
             and balances. This UI uses read-only calls (no private keys required).
           </p>
-        </div>
-        <div style={{ marginTop: "1rem" }}>
-          {isConnected ? (
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <span style={{ fontSize: "0.875rem", color: "#fff" }}>
-                {address?.slice(0, 6)}...{address?.slice(-4)}
-              </span>
-              <button onClick={disconnect} style={{ padding: "0.5rem 1rem" }}>
-                Disconnect
-              </button>
-            </div>
-          ) : (
-            <button onClick={connect} disabled={isConnecting} style={{ padding: "0.5rem 1rem" }}>
-              {isConnecting ? "Connecting..." : "Connect Wallet"}
-            </button>
-          )}
         </div>
       </header>
 
@@ -233,7 +188,7 @@ function App() {
               placeholder="ST... or contract principal"
             />
           </label>
-      </div>
+        </div>
         <div className="actions">
           <button onClick={loadTokenInfo} disabled={loading}>
             {loading ? "Loading..." : "Load token info"}
@@ -241,14 +196,9 @@ function App() {
           <button onClick={loadBalance} disabled={loading}>
             {loading ? "Loading..." : "Get balance"}
           </button>
-          {hooksServerUrl && (
-            <button onClick={loadActivity} disabled={activityLoading}>
-              {activityLoading ? "Loading..." : "Load Chainhooks activity"}
-            </button>
-          )}
           <button onClick={clearResults} disabled={loading}>
             Clear results
-        </button>
+          </button>
         </div>
         {error && <div className="error">{error}</div>}
       </section>
@@ -272,48 +222,10 @@ function App() {
             <p className="label">Network / API</p>
             <p className="value small">
               {network} · {apiBaseUrl}
-        </p>
-      </div>
+            </p>
+          </div>
         </div>
       </section>
-
-      {hooksServerUrl && (
-        <section className="panel">
-          <h2>Chainhooks Activity</h2>
-          {activity.length === 0 ? (
-            <p className="muted">No activity loaded. Click "Load Chainhooks activity" to fetch recent events.</p>
-          ) : (
-            <div className="activity-list">
-              {activity.map((event, idx) => (
-                <div key={idx} className="activity-item">
-                  <div className="activity-header">
-                    <span className="activity-txid">{event.txid?.slice(0, 16)}...</span>
-                    <span className="activity-time">{new Date(event.received_at).toLocaleString()}</span>
-                  </div>
-                  <div className="activity-details">
-                    <span>Block: {event.block_height}</span>
-                    <span>Network: {event.network || event.chain}</span>
-                  </div>
-                  {event.matched_events && event.matched_events.length > 0 && (
-                    <div className="activity-events">
-                      {event.matched_events.map((evt: any, i: number) => (
-                        <div key={i} className="activity-event">
-                          {evt.contract_identifier && (
-                            <span className="event-contract">{evt.contract_identifier}</span>
-                          )}
-                          {evt.function_name && (
-                            <span className="event-function">{evt.function_name}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
     </div>
   );
 }

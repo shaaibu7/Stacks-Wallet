@@ -90,8 +90,6 @@ class WalletXInteractionScript {
 
     const network = networkEnv === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET;
     const networkName = networkEnv === 'mainnet' ? 'Mainnet' : 'Testnet';
-    
-    // For now, let's use the env var but we know there's an address mismatch issue
 
     // Load default values from .env
     const defaultWalletName = process.env.DEFAULT_WALLET_NAME || 'My Company Wallet';
@@ -146,9 +144,7 @@ class WalletXInteractionScript {
     }
   }
 
-  private async broadcastContractCall(functionName: string, functionArgs: any[] = [], fee?: number, retryCount: number = 0): Promise<string> {
-    const maxRetries = 2;
-    
+  private async broadcastContractCall(functionName: string, functionArgs: any[] = [], fee?: number) {
     try {
       const txOptions = {
         contractAddress: this.config.contractAddress,
@@ -172,15 +168,7 @@ class WalletXInteractionScript {
       });
 
       if ('error' in broadcastResponse) {
-        // Check if it's a nonce error and we can retry
-        if (broadcastResponse.reason === 'BadNonce' && retryCount < maxRetries) {
-          console.log(`⚠️  Nonce error detected. Retrying in 10 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
-          await this.sleep(10000);
-          return await this.broadcastContractCall(functionName, functionArgs, fee, retryCount + 1);
-        }
-        
         console.error('❌ Transaction failed:', broadcastResponse.error);
-        console.error('❌ Full response:', JSON.stringify(broadcastResponse, null, 2));
         throw new Error(broadcastResponse.error);
       } else {
         console.log('✅ Transaction broadcast successfully!');
@@ -189,14 +177,6 @@ class WalletXInteractionScript {
         return broadcastResponse.txid;
       }
     } catch (error) {
-      // Check if it's a nonce-related error and we can retry
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('BadNonce') && retryCount < maxRetries) {
-        console.log(`⚠️  Nonce error in catch block. Retrying in 10 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
-        await this.sleep(10000);
-        return await this.broadcastContractCall(functionName, functionArgs, fee, retryCount + 1);
-      }
-      
       console.error(`❌ Error executing ${functionName}:`, error);
       throw error;
     }
@@ -210,18 +190,15 @@ class WalletXInteractionScript {
     console.log(`🏦 Registering wallet "${name}" with ${amount} tokens...\n`);
     
     try {
-      // Use a well-known testnet token contract or deploy our own
-      // For now, let's try with the configured token contract
       const functionArgs = [
         stringUtf8CV(name),
         uintCV(amount),
         contractPrincipalCV(this.config.tokenContractAddress, this.config.tokenContractName)
       ];
 
-      return await this.broadcastContractCall('register-wallet', functionArgs);
+      await this.broadcastContractCall('register-wallet', functionArgs);
     } catch (error) {
       console.error('❌ Wallet registration failed');
-      throw error;
     }
   }
 
@@ -240,10 +217,9 @@ class WalletXInteractionScript {
         uintCV(id)
       ];
 
-      return await this.broadcastContractCall('onboard-member', functionArgs);
+      await this.broadcastContractCall('onboard-member', functionArgs);
     } catch (error) {
       console.error('❌ Member onboarding failed');
-      throw error;
     }
   }
 
@@ -343,280 +319,6 @@ class WalletXInteractionScript {
     } catch (error) {
       console.error('❌ Member withdrawal failed');
     }
-  }
-
-  // Test function to debug contract issues
-  async testContractConnection() {
-    console.log('🔍 Testing contract connection and configuration...\n');
-    
-    try {
-      // Test read-only function first
-      console.log('📋 Contract Configuration:');
-      console.log(`   Contract Address: ${this.config.contractAddress}`);
-      console.log(`   Contract Name: ${this.config.contractName}`);
-      console.log(`   Token Contract: ${this.config.tokenContractAddress}.${this.config.tokenContractName}`);
-      console.log(`   Network: ${this.config.networkName}`);
-      console.log(`   Admin Address: ${this.config.adminAddress}\n`);
-      
-      // Try to get wallet info (this should work even if no wallet exists)
-      console.log('🔍 Testing read-only function...');
-      const walletInfo = await this.getWalletAdmin();
-      
-      if (walletInfo && walletInfo.value) {
-        console.log('✅ Wallet already exists! Details:');
-        console.log(`   Wallet Name: ${walletInfo.value['wallet-name'].value}`);
-        console.log(`   Balance: ${walletInfo.value['wallet-balance'].value}`);
-        console.log(`   Active: ${walletInfo.value.active.value}\n`);
-        return { hasWallet: true, walletInfo };
-      } else {
-        console.log('ℹ️  No wallet found - ready to register new wallet\n');
-        return { hasWallet: false, walletInfo: null };
-      }
-      
-    } catch (error) {
-      console.error('❌ Contract connection test failed:', error);
-      throw error;
-    }
-  }
-
-  // Bulk Wallet Registration Operations
-  async runBulkWalletRegistrations(count: number = 80) {
-    console.log(`🚀 Starting bulk wallet registrations: ${count} wallet registration attempts...\n`);
-    console.log(`⚠️  Note: Each admin address can only register ONE wallet. This will attempt ${count} registrations.`);
-    console.log(`⚠️  Only the first registration will succeed, others will fail with 'wallet exists' error.\n`);
-    
-    const results = {
-      walletRegistrations: 0,
-      failures: 0,
-      txids: [] as string[]
-    };
-
-    try {
-      for (let i = 1; i <= count; i++) {
-        console.log(`\n📋 Wallet Registration Attempt ${i}/${count}`);
-        console.log('=' .repeat(50));
-        
-        try {
-          const walletName = `Wallet ${i}`;
-          const fundAmount = (1000000 + (i * 10000)).toString(); // Varying amounts
-          
-          console.log(`🏦 Attempting to register wallet "${walletName}" with ${fundAmount} tokens...`);
-          const txid = await this.registerWallet(walletName, fundAmount);
-          
-          if (txid) {
-            results.walletRegistrations++;
-            results.txids.push(txid);
-            console.log('✅ Wallet registration successful!');
-          }
-          
-          // Wait between transactions to avoid nonce conflicts
-          console.log('⏳ Waiting 10 seconds before next transaction...');
-          await this.sleep(10000);
-          
-        } catch (error) {
-          console.error(`❌ Wallet registration ${i} failed:`, error);
-          results.failures++;
-          
-          // Continue with next transaction after a longer wait
-          console.log('⏳ Waiting 15 seconds after failure...');
-          await this.sleep(15000);
-        }
-      }
-      
-    } catch (error) {
-      console.error('❌ Bulk wallet registration failed:', error);
-    }
-
-    // Summary
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 BULK WALLET REGISTRATION SUMMARY');
-    console.log('='.repeat(60));
-    console.log(`✅ Successful Wallet Registrations: ${results.walletRegistrations}`);
-    console.log(`❌ Failures: ${results.failures}`);
-    console.log(`📋 Total Transactions: ${results.txids.length}`);
-    console.log(`🎯 Success Rate: ${((results.txids.length / count) * 100).toFixed(1)}%`);
-    
-    if (results.txids.length > 0) {
-      console.log('\n🔗 Transaction IDs:');
-      results.txids.forEach((txid, index) => {
-        console.log(`   ${index + 1}. ${txid}`);
-      });
-    }
-    
-    console.log('\n✨ Bulk wallet registration completed!');
-    console.log('\n⚠️  Expected: Only 1 success, 79 failures due to contract constraint (one wallet per admin)');
-    return results;
-  }
-
-  // Bulk Operations (Original - Wallet + Members)
-
-  async runBulkTransactions(count: number = 50) {
-    console.log(`🚀 Starting bulk operations: ${count} transactions for wallet registration and member onboarding...\n`);
-    
-    const results = {
-      walletRegistrations: 0,
-      memberOnboardings: 0,
-      failures: 0,
-      txids: [] as string[]
-    };
-
-    try {
-      // First, test contract connection and check if wallet exists
-      const testResult = await this.testContractConnection();
-      
-      if (!testResult.hasWallet) {
-        // Register a single wallet (each admin can only have one wallet)
-        console.log(`📋 Initial Wallet Registration`);
-        console.log('=' .repeat(50));
-        
-        try {
-          const walletName = `Bulk Operations Wallet`;
-          const fundAmount = (5000000).toString(); // Large initial funding for all members
-          
-          console.log(`🏦 Registering wallet "${walletName}" with ${fundAmount} tokens...`);
-          const walletTxid = await this.registerWallet(walletName, fundAmount);
-          
-          if (walletTxid) {
-            results.walletRegistrations++;
-            results.txids.push(walletTxid);
-            console.log('✅ Wallet registration successful!');
-          }
-          
-          // Wait before starting member onboarding
-          console.log('⏳ Waiting 5 seconds before starting member onboarding...');
-          await this.sleep(5000);
-          
-        } catch (error) {
-          console.error('❌ Initial wallet registration failed:', error);
-          console.log('⚠️  This might be a contract or configuration issue. Stopping bulk operation.');
-          return results;
-        }
-      } else {
-        console.log('✅ Using existing wallet for member onboarding...\n');
-      }
-
-      // Now onboard members
-      for (let i = 1; i <= count; i++) {
-        console.log(`\n📋 Member Onboarding ${i}/${count}`);
-        console.log('=' .repeat(50));
-        
-        try {
-          const memberName = `Member ${i}`;
-          const memberAddress = this.generateTestAddress(i);
-          const fundAmount = (50000 + (i * 1000)).toString(); // Varying amounts
-          const memberId = i.toString();
-          
-          console.log(`👤 Onboarding member "${memberName}" (${memberAddress}) with ${fundAmount} tokens...`);
-          const txid = await this.onboardMember(memberAddress, memberName, fundAmount, memberId);
-          
-          if (txid) {
-            results.memberOnboardings++;
-            results.txids.push(txid);
-          }
-          
-          // Wait between transactions to avoid nonce conflicts
-          console.log('⏳ Waiting 10 seconds before next transaction...');
-          await this.sleep(10000);
-          
-        } catch (error) {
-          console.error(`❌ Member onboarding ${i} failed:`, error);
-          results.failures++;
-          
-          // Continue with next transaction after a longer wait
-          console.log('⏳ Waiting 15 seconds after failure...');
-          await this.sleep(15000);
-        }
-      }
-      
-    } catch (error) {
-      console.error('❌ Bulk operation failed:', error);
-    }
-
-    // Summary
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 BULK OPERATION SUMMARY');
-    console.log('='.repeat(60));
-    console.log(`✅ Wallet Registrations: ${results.walletRegistrations}`);
-    console.log(`✅ Member Onboardings: ${results.memberOnboardings}`);
-    console.log(`❌ Failures: ${results.failures}`);
-    console.log(`📋 Total Transactions: ${results.txids.length}`);
-    console.log(`🎯 Success Rate: ${((results.txids.length / (count + 1)) * 100).toFixed(1)}%`);
-    
-    if (results.txids.length > 0) {
-      console.log('\n🔗 Transaction IDs:');
-      results.txids.forEach((txid, index) => {
-        console.log(`   ${index + 1}. ${txid}`);
-      });
-    }
-    
-    console.log('\n✨ Bulk operation completed!');
-    return results;
-  }
-
-  private generateTestAddress(seed: number): string {
-    // Use only verified valid testnet addresses (from successful transactions in previous run)
-    const validTestAddresses = [
-      'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-      'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5',
-      'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG',
-      'ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC',
-      'ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND',
-      'ST2REHHS5J3CERCRBEPMGH7921Q6PYKAADT7JP2VB',
-      'ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0',
-      'ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ',
-      'ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP',
-      'STNHKEPYEPJ8ET55ZZ0M5A34J0R3N5FM2CMMMAZ6',
-      'ST1HTBVD3JG9C05J7HBJTHGR0GGW7KXW28M5JS8QE',
-      'ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y',
-      'ST12EY99GS4YKP0CP2CFW6SEPWQ2CGVRWK5GHKDRV',
-      'ST000000000000000000002AMW42H',
-      // Duplicate the working addresses to ensure we have enough for 50+ members
-      'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-      'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5',
-      'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG',
-      'ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC',
-      'ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND',
-      'ST2REHHS5J3CERCRBEPMGH7921Q6PYKAADT7JP2VB',
-      'ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0',
-      'ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ',
-      'ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP',
-      'STNHKEPYEPJ8ET55ZZ0M5A34J0R3N5FM2CMMMAZ6',
-      'ST1HTBVD3JG9C05J7HBJTHGR0GGW7KXW28M5JS8QE',
-      'ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y',
-      'ST12EY99GS4YKP0CP2CFW6SEPWQ2CGVRWK5GHKDRV',
-      'ST000000000000000000002AMW42H',
-      // Third repetition to ensure coverage for 50+ members
-      'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-      'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5',
-      'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG',
-      'ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC',
-      'ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND',
-      'ST2REHHS5J3CERCRBEPMGH7921Q6PYKAADT7JP2VB',
-      'ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0',
-      'ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ',
-      'ST3NBRSFKX28FQ2ZJ1MAKX58HKHSDGNV5N7R21XCP',
-      'STNHKEPYEPJ8ET55ZZ0M5A34J0R3N5FM2CMMMAZ6',
-      'ST1HTBVD3JG9C05J7HBJTHGR0GGW7KXW28M5JS8QE',
-      'ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y',
-      'ST12EY99GS4YKP0CP2CFW6SEPWQ2CGVRWK5GHKDRV',
-      'ST000000000000000000002AMW42H',
-      // Fourth repetition for extra coverage
-      'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
-      'ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5',
-      'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG',
-      'ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC',
-      'ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND',
-      'ST2REHHS5J3CERCRBEPMGH7921Q6PYKAADT7JP2VB',
-      'ST3AM1A56AK2C1XAFJ4115ZSV26EB49BVQ10MGCS0',
-      'ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ'
-    ];
-    
-    // Cycle through the valid addresses based on the seed
-    return validTestAddresses[seed % validTestAddresses.length];
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   // Read-only Functions
@@ -790,8 +492,6 @@ Usage: tsx scripts/interact-wallet-x.ts <command> [arguments]
 Admin Commands:
   register-wallet [name] [amount]           - Register a new wallet (uses .env defaults if no args)
   onboard-member [address] [name] [amount] [id] - Add a new member (uses .env defaults if no args)
-  bulk-wallets [count]                      - Attempt multiple wallet registrations (default: 80, only 1 will succeed)
-  bulk-transactions [count]                 - Register one wallet and onboard multiple members (default: 50 members)
   reimburse-wallet [amount]                 - Add funds to admin wallet (uses .env default if no amount)
   reimburse-member [member-id] [amount]     - Add funds to member's spend limit (uses .env defaults if no args)
   remove-member [address]                   - Remove a member (uses .env default address if no arg)
@@ -802,7 +502,6 @@ Member Commands:
   withdraw [amount] [receiver]              - Withdraw funds (uses .env defaults if no args)
 
 Query Commands:
-  test-connection                           - Test contract connection and configuration
   wallet-info [admin-address]               - Get wallet admin information (uses .env admin if no arg)
   admin-role [address]                      - Check if address has admin role (uses .env admin if no arg)
   members [admin-address]                   - List all members for an admin (uses .env admin if no arg)
@@ -814,16 +513,12 @@ Query Commands:
 Quick Commands (using .env defaults):
   npm run interact-wallet register-wallet   - Register wallet with default name and funding
   npm run interact-wallet onboard-member    - Onboard default member
-  npm run interact-wallet bulk-wallets      - Attempt 80 wallet registrations (only 1 will succeed)
-  npm run interact-wallet bulk-transactions - Register wallet and onboard 50 members
   npm run interact-wallet wallet-info       - Check your wallet info
   npm run interact-wallet member-info       - Check default member info
 
 Examples:
   tsx scripts/interact-wallet-x.ts register-wallet "My Company Wallet" 1000000
   tsx scripts/interact-wallet-x.ts onboard-member ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM "John Doe" 50000 1
-  tsx scripts/interact-wallet-x.ts bulk-wallets 80
-  tsx scripts/interact-wallet-x.ts bulk-transactions 50
   tsx scripts/interact-wallet-x.ts withdraw 10000 ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
   tsx scripts/interact-wallet-x.ts wallet-info ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
   tsx scripts/interact-wallet-x.ts member-info ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
@@ -869,28 +564,6 @@ async function main() {
 
       case 'onboard-member':
         await script.onboardMember(args[1], args[2], args[3], args[4]);
-        break;
-
-      case 'test-connection':
-        await script.testContractConnection();
-        break;
-
-      case 'bulk-wallets':
-        const walletCount = args[1] ? parseInt(args[1]) : 80;
-        if (isNaN(walletCount) || walletCount <= 0) {
-          console.error('❌ Invalid count. Please provide a positive number.');
-          process.exit(1);
-        }
-        await script.runBulkWalletRegistrations(walletCount);
-        break;
-
-      case 'bulk-transactions':
-        const count = args[1] ? parseInt(args[1]) : 50;
-        if (isNaN(count) || count <= 0) {
-          console.error('❌ Invalid count. Please provide a positive number.');
-          process.exit(1);
-        }
-        await script.runBulkTransactions(count);
         break;
 
       case 'reimburse-wallet':
