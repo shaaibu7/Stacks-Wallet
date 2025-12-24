@@ -28,3 +28,29 @@
 
 ;; Used signatures to prevent replay
 (define-map used-signatures (buff 65) bool)
+
+;; Initialize domain separator on contract deployment
+(define-private (compute-domain-separator)
+  (sha256 (concat 
+    DOMAIN_TYPEHASH
+    (sha256 DOMAIN_NAME)
+    (sha256 DOMAIN_VERSION)
+    (int-to-ascii DOMAIN_CHAIN_ID)
+    (as-contract tx-sender))))
+
+;; Initialize domain separator
+(var-set domain-separator (compute-domain-separator))
+
+;; Helper function to get current nonce for a user
+(define-read-only (get-nonce (user principal))
+  (default-to u0 (map-get? nonces user)))
+
+;; Helper function to increment nonce
+(define-private (increment-nonce (user principal))
+  (let ((current-nonce (get-nonce user)))
+    (map-set nonces user (+ current-nonce u1))
+    (+ current-nonce u1)))
+
+;; Get domain separator
+(define-read-only (get-domain-separator)
+  (var-get domain-separator))
