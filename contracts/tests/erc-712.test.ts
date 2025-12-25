@@ -356,3 +356,66 @@ describe('ERC-712 Contract Tests', () => {
       expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
     });
   });
+  describe('Administrative Functions', () => {
+    it('should allow owner to pause contract', () => {
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'set-paused',
+        [Cl.bool(true)],
+        deployer
+      );
+      
+      expect(result.result).toBeOk(Cl.bool(true));
+      
+      // Verify contract is paused
+      const pausedResult = simnet.callReadOnlyFn(
+        'erc-712',
+        'is-paused',
+        [],
+        deployer
+      );
+      
+      expect(Cl.unwrapBool(pausedResult.result)).toBe(true);
+    });
+
+    it('should reject non-owner pause attempts', () => {
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'set-paused',
+        [Cl.bool(true)],
+        wallet1
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(401)); // ERR_UNAUTHORIZED
+    });
+
+    it('should allow owner to unpause contract', () => {
+      // First pause
+      simnet.callPublicFn(
+        'erc-712',
+        'set-paused',
+        [Cl.bool(true)],
+        deployer
+      );
+      
+      // Then unpause
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'set-paused',
+        [Cl.bool(false)],
+        deployer
+      );
+      
+      expect(result.result).toBeOk(Cl.bool(false));
+      
+      // Verify contract is not paused
+      const pausedResult = simnet.callReadOnlyFn(
+        'erc-712',
+        'is-paused',
+        [],
+        deployer
+      );
+      
+      expect(Cl.unwrapBool(pausedResult.result)).toBe(false);
+    });
+  });
