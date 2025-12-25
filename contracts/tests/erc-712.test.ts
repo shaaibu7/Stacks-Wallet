@@ -89,3 +89,34 @@ describe('ERC-712 Contract Tests', () => {
       expect(permitResult.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
     });
   });
+  describe('Domain Separator', () => {
+    it('should return consistent domain separator', () => {
+      const result1 = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-domain-separator',
+        [],
+        deployer
+      );
+      
+      const result2 = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-domain-separator',
+        [],
+        wallet1
+      );
+      
+      expect(result1.result).toEqual(result2.result);
+      expect(Cl.isBuff(result1.result)).toBe(true);
+    });
+
+    it('should have correct chain ID', () => {
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-chain-id',
+        [],
+        deployer
+      );
+      
+      expect(Cl.unwrapUInt(result.result)).toBe(1n);
+    });
+  });
