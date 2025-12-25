@@ -31,3 +31,35 @@ const appKit = createAppKit({
     icons: [],
   },
 });
+
+export function useWallet() {
+  const [address, setAddress] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  useEffect(() => {
+    // Check if already connected
+    const checkConnection = async () => {
+      const accounts = await appKit.getAccount();
+      if (accounts && accounts.length > 0) {
+        setAddress(accounts[0].address);
+        setIsConnected(true);
+      }
+    };
+    checkConnection();
+
+    // Listen for connection events
+    const unsubscribe = appKit.subscribe((state) => {
+      const accounts = state.accounts;
+      if (accounts && accounts.length > 0) {
+        setAddress(accounts[0].address);
+        setIsConnected(true);
+        setIsConnecting(false);
+      } else {
+        setAddress(null);
+        setIsConnected(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
