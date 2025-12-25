@@ -241,3 +241,54 @@ describe('ERC-712 Contract Tests', () => {
       });
     });
   });
+  describe('Delegation Functionality', () => {
+    it('should reject expired delegation signatures', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      const expiredTime = simnet.blockHeight - 1;
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'delegate-by-sig',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(expiredTime),
+          mockSignature
+        ],
+        deployer
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(403)); // ERR_EXPIRED
+    });
+
+    it('should handle delegation queries correctly', () => {
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-delegate',
+        [Cl.principal(wallet1)],
+        deployer
+      );
+      
+      // Should return none for non-existent delegation
+      expect(Cl.isNone(result.result)).toBe(true);
+    });
+
+    it('should reject invalid delegation signatures', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      const futureTime = simnet.blockHeight + 100;
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'delegate-by-sig',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(futureTime),
+          mockSignature
+        ],
+        deployer
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
+    });
+  });
