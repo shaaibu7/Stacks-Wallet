@@ -39,15 +39,10 @@
 ;; Max supply in base units (e.g. 1_000_000 tokens with 6 decimals)
 (define-constant MAX_SUPPLY (* u1000000 u1000000))
 
-<<<<<<< HEAD
-(define-data-var token-uri (string-utf8 256) u"https://hiro.so") ;; utf-8 string with token metadata host
-(define-data-var contract-paused bool false)
-
-;; ===== DATA MAPS =====
-=======
 ;; Minting guard: owner can pause further minting once distribution is complete
 (define-data-var minting-paused bool false)
->>>>>>> 221518e (refactor(contract): remove set-token-uri function to simplify)
+
+;; ===== DATA MAPS =====
 
 ;; Allowances: owner -> spender -> amount
 (define-map allowances {owner: principal, spender: principal} uint)
