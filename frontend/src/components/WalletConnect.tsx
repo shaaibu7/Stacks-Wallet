@@ -29,24 +29,18 @@ const appKit = createAppKit({
 
 export function useWallet() {
   const [address, setAddress] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     const unsubscribe = appKit.subscribe((state) => {
-      const accounts = state.accounts;
-      if (accounts?.length > 0) {
-        setAddress(accounts[0].address);
-        setIsConnected(true);
-      } else {
-        setAddress(null);
-        setIsConnected(false);
-      }
+      setAddress(state.accounts?.[0]?.address || null);
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  const connect = () => appKit.open();
-  const disconnect = () => appKit.disconnect();
-
-  return { address, isConnected, connect, disconnect };
+  return {
+    address,
+    isConnected: !!address,
+    connect: () => appKit.open(),
+    disconnect: () => appKit.disconnect(),
+  };
 }
