@@ -63,3 +63,32 @@ export function useWallet() {
 
     return () => unsubscribe();
   }, []);
+
+  const connect = async () => {
+    try {
+      setIsConnecting(true);
+      await appKit.open();
+    } catch (err) {
+      console.error("Failed to connect wallet:", err);
+      setIsConnecting(false);
+    }
+  };
+
+  const disconnect = async () => {
+    try {
+      await appKit.disconnect();
+      setAddress(null);
+      setIsConnected(false);
+    } catch (err) {
+      console.error("Failed to disconnect wallet:", err);
+    }
+  };
+
+  return {
+    address,
+    isConnected,
+    isConnecting,
+    connect,
+    disconnect,
+  };
+}
