@@ -181,6 +181,22 @@ function App() {
             and balances. This UI uses read-only calls (no private keys required).
           </p>
         </div>
+        <div style={{ marginTop: "1rem" }}>
+          {isConnected ? (
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <span style={{ fontSize: "0.875rem", color: "#fff" }}>
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </span>
+              <button onClick={disconnect} style={{ padding: "0.5rem 1rem" }}>
+                Disconnect
+              </button>
+            </div>
+          ) : (
+            <button onClick={connect} disabled={isConnecting} style={{ padding: "0.5rem 1rem" }}>
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
+            </button>
+          )}
+        </div>
       </header>
 
       <section className="panel">
