@@ -43,7 +43,7 @@ function formatString(cv: any): string {
 }
 
 function App() {
-  const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
+  const { address, isConnected, connect, disconnect } = useWallet();
   const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
   const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
   const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
@@ -192,8 +192,8 @@ function App() {
               </button>
             </div>
           ) : (
-            <button onClick={connect} disabled={isConnecting} style={{ padding: "0.5rem 1rem" }}>
-              {isConnecting ? "Connecting..." : "Connect Wallet"}
+            <button onClick={connect} style={{ padding: "0.5rem 1rem" }}>
+              Connect Wallet
             </button>
           )}
         </div>
