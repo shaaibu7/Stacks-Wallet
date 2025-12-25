@@ -39,10 +39,15 @@
 ;; Max supply in base units (e.g. 1_000_000 tokens with 6 decimals)
 (define-constant MAX_SUPPLY (* u1000000 u1000000))
 
+<<<<<<< HEAD
 (define-data-var token-uri (string-utf8 256) u"https://hiro.so") ;; utf-8 string with token metadata host
 (define-data-var contract-paused bool false)
 
 ;; ===== DATA MAPS =====
+=======
+;; Minting guard: owner can pause further minting once distribution is complete
+(define-data-var minting-paused bool false)
+>>>>>>> 221518e (refactor(contract): remove set-token-uri function to simplify)
 
 ;; Allowances: owner -> spender -> amount
 (define-map allowances {owner: principal, spender: principal} uint)
@@ -172,6 +177,7 @@
   (ok TOKEN_DECIMALS)
 )
 
+<<<<<<< HEAD
 ;; SIP-010 function: Returns the URI containing token metadata
 (define-read-only (get-token-uri)
   (ok (some (var-get token-uri)))
@@ -330,6 +336,8 @@
     )
 )
 
+=======
+>>>>>>> 221518e (refactor(contract): remove set-token-uri function to simplify)
 ;; Mint new tokens and send them to a recipient.
 ;; Only the contract deployer can perform this operation.
 ;; Enforces a global MAX_SUPPLY and an owner-controlled pause switch.
