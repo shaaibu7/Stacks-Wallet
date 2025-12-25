@@ -419,3 +419,47 @@ describe('ERC-712 Contract Tests', () => {
       expect(Cl.unwrapBool(pausedResult.result)).toBe(false);
     });
   });
+  describe('Emergency Functions', () => {
+    it('should allow owner to invalidate user nonces', () => {
+      // Get initial nonce
+      const initialNonce = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-nonce',
+        [Cl.principal(wallet1)],
+        deployer
+      );
+      
+      expect(Cl.unwrapUInt(initialNonce.result)).toBe(0n);
+      
+      // Emergency invalidate
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'emergency-invalidate-nonce',
+        [Cl.principal(wallet1)],
+        deployer
+      );
+      
+      expect(result.result).toBeOk(Cl.uint(1000));
+      
+      // Check new nonce
+      const newNonce = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-nonce',
+        [Cl.principal(wallet1)],
+        deployer
+      );
+      
+      expect(Cl.unwrapUInt(newNonce.result)).toBe(1000n);
+    });
+
+    it('should reject non-owner emergency invalidation', () => {
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'emergency-invalidate-nonce',
+        [Cl.principal(wallet1)],
+        wallet2
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(401)); // ERR_UNAUTHORIZED
+    });
+  });
