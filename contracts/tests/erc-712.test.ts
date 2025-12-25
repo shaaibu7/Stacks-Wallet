@@ -707,3 +707,67 @@ describe('ERC-712 Contract Tests', () => {
       });
     });
   });
+  describe('State Consistency', () => {
+    it('should maintain consistent state across multiple operations', () => {
+      // Check initial state
+      const initialInfo = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-contract-info',
+        [],
+        deployer
+      );
+      
+      // Perform some operations
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      simnet.callPublicFn(
+        'erc-712',
+        'permit',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(1000),
+          Cl.uint(simnet.blockHeight + 100),
+          mockSignature
+        ],
+        wallet1
+      );
+      
+      // Check state after operations
+      const finalInfo = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-contract-info',
+        [],
+        deployer
+      );
+      
+      // Core contract info should remain the same
+      const initial = Cl.unwrap(initialInfo.result);
+      const final = Cl.unwrap(finalInfo.result);
+      
+      expect(Cl.unwrapAscii(initial.name)).toBe(Cl.unwrapAscii(final.name));
+      expect(Cl.unwrapAscii(initial.version)).toBe(Cl.unwrapAscii(final.version));
+      expect(Cl.unwrapPrincipal(initial.owner)).toBe(Cl.unwrapPrincipal(final.owner));
+    });
+
+    it('should handle concurrent nonce queries', () => {
+      const user = wallet1;
+      
+      // Multiple concurrent nonce queries should return same value
+      const nonce1 = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-nonce',
+        [Cl.principal(user)],
+        deployer
+      );
+      
+      const nonce2 = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-nonce',
+        [Cl.principal(user)],
+        wallet2
+      );
+      
+      expect(nonce1.result).toEqual(nonce2.result);
+    });
+  });
