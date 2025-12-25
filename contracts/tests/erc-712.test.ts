@@ -292,3 +292,67 @@ describe('ERC-712 Contract Tests', () => {
       expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
     });
   });
+  describe('Batch Operations', () => {
+    it('should handle empty batch operations', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      const emptyOperations = Cl.list([]);
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'execute-batch',
+        [emptyOperations, mockSignature],
+        wallet1
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
+    });
+
+    it('should handle single batch operation', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      const mockData = Cl.bufferFromHex('0x' + '00'.repeat(50));
+      
+      const singleOperation = Cl.list([
+        Cl.tuple({
+          to: Cl.principal(wallet2),
+          value: Cl.uint(100),
+          data: mockData
+        })
+      ]);
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'execute-batch',
+        [singleOperation, mockSignature],
+        wallet1
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
+    });
+
+    it('should handle multiple batch operations', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      const mockData = Cl.bufferFromHex('0x' + '00'.repeat(50));
+      
+      const multipleOperations = Cl.list([
+        Cl.tuple({
+          to: Cl.principal(wallet2),
+          value: Cl.uint(100),
+          data: mockData
+        }),
+        Cl.tuple({
+          to: Cl.principal(wallet3),
+          value: Cl.uint(200),
+          data: mockData
+        })
+      ]);
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'execute-batch',
+        [multipleOperations, mockSignature],
+        wallet1
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
+    });
+  });
