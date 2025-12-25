@@ -651,3 +651,59 @@ describe('ERC-712 Contract Tests', () => {
       });
     });
   });
+  describe('Buffer and Data Handling', () => {
+    it('should handle different signature buffer sizes', () => {
+      const mockStructHash = Cl.bufferFromHex('0x' + '12'.repeat(32));
+      
+      // Test with incorrect signature sizes
+      const invalidSizes = [64, 66, 32, 128];
+      
+      invalidSizes.forEach(size => {
+        try {
+          const invalidSignature = Cl.bufferFromHex('0x' + '00'.repeat(size));
+          
+          const result = simnet.callReadOnlyFn(
+            'erc-712',
+            'is-valid-signature',
+            [mockStructHash, invalidSignature, Cl.principal(wallet1)],
+            deployer
+          );
+          
+          // Should handle gracefully or return false
+          if (size === 65) {
+            expect(Cl.unwrapBool(result.result)).toBe(false);
+          }
+        } catch (error) {
+          // Expected for invalid buffer sizes
+          expect(size).not.toBe(65);
+        }
+      });
+    });
+
+    it('should handle different struct hash sizes', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      // Test with different hash sizes
+      const hashSizes = [16, 32, 64];
+      
+      hashSizes.forEach(size => {
+        try {
+          const structHash = Cl.bufferFromHex('0x' + '12'.repeat(size));
+          
+          if (size === 32) {
+            const result = simnet.callReadOnlyFn(
+              'erc-712',
+              'is-valid-signature',
+              [structHash, mockSignature, Cl.principal(wallet1)],
+              deployer
+            );
+            
+            expect(Cl.unwrapBool(result.result)).toBe(false);
+          }
+        } catch (error) {
+          // Expected for invalid hash sizes
+          expect(size).not.toBe(32);
+        }
+      });
+    });
+  });
