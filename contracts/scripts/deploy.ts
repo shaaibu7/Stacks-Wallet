@@ -89,7 +89,9 @@ async function deployAll() {
         // Deploy token contract
         console.log("\n2️⃣ Deploying token contract...");
         const timestamp = Date.now();
-        const tokenContractName = `token-contract-${timestamp}`;
+        // Use custom name if provided, otherwise use timestamp-based name
+        const customName = process.env.TOKEN_CONTRACT_NAME;
+        const tokenContractName = customName || `token-contract-v3-${timestamp}`;
         await deployContract('token-contract.clar', tokenContractName);
         
         console.log(`\n🎉 All contracts deployed successfully!`);
