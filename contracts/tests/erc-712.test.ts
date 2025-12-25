@@ -509,3 +509,64 @@ describe('ERC-712 Contract Tests', () => {
       expect(result.result).toBeOk(Cl.bool(false));
     });
   });
+  describe('Edge Cases', () => {
+    it('should handle maximum uint values', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      const maxUint = 2n ** 128n - 1n; // Large number
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'permit',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(maxUint),
+          Cl.uint(simnet.blockHeight + 100),
+          mockSignature
+        ],
+        wallet1
+      );
+      
+      // Should fail with invalid signature, not overflow
+      expect(result.result).toBeErr(Cl.uint(402));
+    });
+
+    it('should handle zero values correctly', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'permit',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(0),
+          Cl.uint(simnet.blockHeight + 100),
+          mockSignature
+        ],
+        wallet1
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
+    });
+
+    it('should handle boundary block heights', () => {
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      // Test with current block height (should be expired)
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'permit',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(1000),
+          Cl.uint(simnet.blockHeight),
+          mockSignature
+        ],
+        wallet1
+      );
+      
+      expect(result.result).toBeErr(Cl.uint(403)); // ERR_EXPIRED
+    });
+  });
