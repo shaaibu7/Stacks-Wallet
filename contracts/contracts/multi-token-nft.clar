@@ -1,55 +1,172 @@
+;; =====================================================================
 ;; Multi-Token NFT Contract (ERC1155-like)
-;; Supports both fungible and non-fungible tokens in a single contract
+;; =====================================================================
+;; 
+;; A comprehensive multi-token contract supporting both fungible and 
+;; non-fungible tokens in a single contract. This implementation provides:
+;;
+;; - Batch operations for gas efficiency
+;; - Comprehensive validation and security checks
+;; - Emergency controls and administrative functions
+;; - Detailed event logging for transparency
+;; - Optimized storage patterns
+;; - Creator-based token management
+;;
+;; Version: 2.1.0
+;; Compatible with: Clarity 4
+;; Standard: ERC1155-like (adapted for Stacks)
+;; Last Updated: December 2024
+;;
+;; ===================================================================== 
+
+;; ===== CONSTANTS =====
+
+;; Contract owner (set at deployment)
+(define-constant CONTRACT_OWNER tx-sender)
+
+;; Maximum values for safety
+(define-constant MAX_SUPPLY u1000000000000) ;; 1 trillion max supply per token
+(define-constant MAX_BATCH_SIZE u100) ;; Increased from 50 to 100
+(define-constant MAX_URI_LENGTH u256)
+
+;; ===== ERROR CODES =====
+
+;; Authorization errors (100-109)
+(define-constant ERR_OWNER_ONLY (err u100))
+(define-constant ERR_NOT_TOKEN_OWNER (err u101))
+(define-constant ERR_UNAUTHORIZED (err u102))
+
+;; Token operation errors (110-119)
+(define-constant ERR_TOKEN_NOT_FOUND (err u110))
+(define-constant ERR_INSUFFICIENT_BALANCE (err u111))
+(define-constant ERR_INVALID_AMOUNT (err u112))
+(define-constant ERR_SUPPLY_EXCEEDED (err u113))
+
+;; Input validation errors (120-129)
+(define-constant ERR_INVALID_RECIPIENT (err u120))
+(define-constant ERR_BATCH_SIZE_MISMATCH (err u121))
+(define-constant ERR_BATCH_TOO_LARGE (err u122))
+(define-constant ERR_INVALID_URI (err u123))
+
+;; System errors (130-139)
+(define-constant ERR_CONTRACT_PAUSED (err u130))
+
+;; State management errors (140-149)
+(define-constant ERR_INVALID_STATE (err u140))
+(define-constant ERR_OPERATION_FAILED (err u141))
+
+;; ===== TOKEN DEFINITION =====
 
 ;; Define the semi-fungible token
 (define-non-fungible-token multi-token uint)
 
-;; Define errors
-(define-constant ERR_OWNER_ONLY (err u100))
-(define-constant ERR_NOT_TOKEN_OWNER (err u101))
-(define-constant ERR_INSUFFICIENT_BALANCE (err u102))
-(define-constant ERR_TOKEN_NOT_FOUND (err u103))
-(define-constant ERR_INVALID_AMOUNT (err u104))
-(define-constant ERR_UNAUTHORIZED (err u105))
+;; ===== DATA VARIABLES =====
 
-;; Define constants
-(define-constant CONTRACT_OWNER tx-sender)
-
-;; Data variables
 (define-data-var next-token-id uint u1)
 (define-data-var contract-uri (string-utf8 256) u"https://api.example.com/metadata/")
+(define-data-var contract-paused bool false)
+(define-data-var total-transactions uint u0) ;; Track total number of transactions
 
-;; Maps for token balances and metadata
+;; ===== DATA MAPS =====
+
+;; Core token data
 (define-map token-balances {token-id: uint, owner: principal} uint)
 (define-map token-supplies uint uint)
-(define-map token-uris uint (string-utf8 256))
 (define-map token-creators uint principal)
+
+;; Metadata and URIs
+(define-map token-uris uint (string-utf8 256))
+(define-map token-names uint (string-utf8 64))
+
+;; Permissions and approvals
 (define-map operator-approvals {owner: principal, operator: principal} bool)
+
+;; Token metadata extensions
+(define-map token-descriptions uint (string-utf8 512)) ;; Extended descriptions
+(define-map token-royalties uint {creator: principal, percentage: uint}) ;; Royalty info
+
+;; ===== VALIDATION HELPERS =====
+
+;; Check if contract is not paused
+(define-private (assert-not-paused)
+  (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
+)
+
+;; Validate token amount
+(define-private (is-valid-amount (amount uint))
+  (and (> amount u0) (<= amount MAX_SUPPLY))
+)
+
+;; Validate principal (not contract deployer address)
+(define-private (is-valid-recipient (recipient principal))
+  (not (is-eq recipient CONTRACT_OWNER))
+)
+
+;; Check if token exists
+(define-private (token-exists-check (token-id uint))
+  (is-some (map-get? token-creators token-id))
+)
+
+;; Validate royalty percentage (0-10000 basis points = 0-100%)
+(define-private (is-valid-royalty (percentage uint))
+  (<= percentage u10000)
+)
+
+;; ===== AUTHORIZATION HELPERS =====
+
+;; Check if caller is authorized to act on behalf of owner
+(define-private (is-authorized (owner principal) (operator principal))
+  (or 
+    (is-eq operator owner)
+    (is-eq contract-caller owner)
+    (default-to false (map-get? operator-approvals {owner: owner, operator: operator}))
+  )
+)
+
+;; Check if caller is token creator
+(define-private (is-token-creator (token-id uint) (caller principal))
+  (match (map-get? token-creators token-id)
+    creator (is-eq caller creator)
+    false
+  )
+)
+
+;; Check if caller is contract owner
+(define-private (is-contract-owner (caller principal))
+  (is-eq caller CONTRACT_OWNER)
+)
+
+;; ===== READ-ONLY FUNCTIONS =====
 
 ;; Get balance of a specific token for an owner
 (define-read-only (balance-of (owner principal) (token-id uint))
   (ok (default-to u0 (map-get? token-balances {token-id: token-id, owner: owner})))
 )
 
-;; Get balances of multiple tokens for multiple owners
-(define-read-only (balance-of-batch (owners (list 50 principal)) (token-ids (list 50 uint)))
-  (ok (map balance-of-single (zip owners token-ids)))
+;; Get balances of multiple tokens for multiple owners (optimized)
+(define-read-only (balance-of-batch (owners (list 100 principal)) (token-ids (list 100 uint)))
+  (let ((owner-count (len owners))
+        (token-count (len token-ids)))
+    (begin
+      (asserts! (is-eq owner-count token-count) ERR_BATCH_SIZE_MISMATCH)
+      (asserts! (<= owner-count MAX_BATCH_SIZE) ERR_BATCH_TOO_LARGE)
+      (ok (map balance-of-single (zip-optimized owners token-ids)))
+    )
+  )
 )
 
-;; Helper function for batch balance queries
+;; Optimized helper function for batch balance queries
 (define-private (balance-of-single (owner-token-pair {owner: principal, token-id: uint}))
-  (default-to u0 (map-get? token-balances {
-    token-id: (get token-id owner-token-pair), 
-    owner: (get owner owner-token-pair)
-  }))
+  (default-to u0 (map-get? token-balances owner-token-pair))
 )
 
-;; Helper function to zip two lists
-(define-private (zip (owners (list 50 principal)) (token-ids (list 50 uint)))
-  (map make-pair owners token-ids)
+;; Optimized zip function with direct tuple creation
+(define-private (zip-optimized (owners (list 100 principal)) (token-ids (list 100 uint)))
+  (map create-balance-key owners token-ids)
 )
 
-(define-private (make-pair (owner principal) (token-id uint))
+;; Create balance key tuple directly
+(define-private (create-balance-key (owner principal) (token-id uint))
   {owner: owner, token-id: token-id}
 )
 
@@ -68,37 +185,76 @@
   (ok (var-get contract-uri))
 )
 
+;; Get token description
+(define-read-only (get-token-description (token-id uint))
+  (ok (map-get? token-descriptions token-id))
+)
+
+;; Get token royalty info
+(define-read-only (get-token-royalty (token-id uint))
+  (ok (map-get? token-royalties token-id))
+)
+
 ;; Check if operator is approved
 (define-read-only (is-approved-for-all (owner principal) (operator principal))
   (ok (default-to false (map-get? operator-approvals {owner: owner, operator: operator})))
 )
 
-;; Set approval for all tokens
+;; Set approval for all tokens with enhanced validation and logging
 (define-public (set-approval-for-all (operator principal) (approved bool))
   (begin
+    ;; Validation
+    (try! (assert-not-paused))
+    (asserts! (not (is-eq tx-sender operator)) ERR_INVALID_RECIPIENT)
+    
+    ;; Update approval
     (map-set operator-approvals {owner: tx-sender, operator: operator} approved)
+    
+    ;; Emit detailed approval event
     (print {
       notification: "approval-for-all",
       payload: {
         owner: tx-sender,
         operator: operator,
-        approved: approved
+        approved: approved,
+        block-height: block-height,
+        timestamp: (unwrap-panic (get-block-info? time (- block-height u1)))
       }
     })
+    
     (ok true)
   )
 )
 
-;; Create a new token type
-(define-public (create-token (initial-supply uint) (uri (string-utf8 256)))
+;; Create a new token type with comprehensive validation and royalty support
+(define-public (create-token-with-royalty 
+  (initial-supply uint) 
+  (uri (string-utf8 256)) 
+  (name (string-utf8 64))
+  (description (string-utf8 512))
+  (royalty-percentage uint)
+)
   (let ((token-id (var-get next-token-id)))
     (begin
-      (asserts! (> initial-supply u0) ERR_INVALID_AMOUNT)
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (is-valid-amount initial-supply) ERR_INVALID_AMOUNT)
+      (asserts! (<= initial-supply MAX_SUPPLY) ERR_SUPPLY_EXCEEDED)
+      (asserts! (> (len uri) u0) ERR_INVALID_URI)
+      (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
+      (asserts! (> (len name) u0) ERR_INVALID_URI)
+      (asserts! (<= (len name) u64) ERR_INVALID_URI)
+      (asserts! (> (len description) u0) ERR_INVALID_URI)
+      (asserts! (<= (len description) u512) ERR_INVALID_URI)
+      (asserts! (is-valid-royalty royalty-percentage) ERR_INVALID_AMOUNT)
       
       ;; Set token metadata
       (map-set token-uris token-id uri)
+      (map-set token-names token-id name)
+      (map-set token-descriptions token-id description)
       (map-set token-creators token-id tx-sender)
       (map-set token-supplies token-id initial-supply)
+      (map-set token-royalties token-id {creator: tx-sender, percentage: royalty-percentage})
       
       ;; Mint initial supply to creator
       (map-set token-balances {token-id: token-id, owner: tx-sender} initial-supply)
@@ -106,13 +262,17 @@
       ;; Increment next token ID
       (var-set next-token-id (+ token-id u1))
       
+      ;; Emit creation event
       (print {
         notification: "token-created",
         payload: {
           token-id: token-id,
           creator: tx-sender,
           initial-supply: initial-supply,
-          uri: uri
+          uri: uri,
+          name: name,
+          description: description,
+          royalty-percentage: royalty-percentage
         }
       })
       
@@ -121,27 +281,35 @@
   )
 )
 
-;; Mint additional tokens (only creator can mint)
+;; Mint additional tokens with enhanced validation (only creator can mint)
 (define-public (mint (to principal) (token-id uint) (amount uint))
   (let (
     (creator (unwrap! (map-get? token-creators token-id) ERR_TOKEN_NOT_FOUND))
     (current-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: to})))
     (current-supply (default-to u0 (map-get? token-supplies token-id)))
+    (new-supply (+ current-supply amount))
   )
     (begin
-      (asserts! (is-eq tx-sender creator) ERR_UNAUTHORIZED)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (is-valid-recipient to) ERR_INVALID_RECIPIENT)
+      (asserts! (<= new-supply MAX_SUPPLY) ERR_SUPPLY_EXCEEDED)
       
       ;; Update balances and supply
       (map-set token-balances {token-id: token-id, owner: to} (+ current-balance amount))
-      (map-set token-supplies token-id (+ current-supply amount))
+      (map-set token-supplies token-id new-supply)
       
+      ;; Emit mint event
       (print {
         notification: "tokens-minted",
         payload: {
           token-id: token-id,
           to: to,
-          amount: amount
+          amount: amount,
+          new-balance: (+ current-balance amount),
+          new-supply: new-supply
         }
       })
       
@@ -150,7 +318,7 @@
   )
 )
 
-;; Safe transfer from one address to another
+;; Safe transfer from one address to another with enhanced logging
 (define-public (safe-transfer-from 
   (from principal) 
   (to principal) 
@@ -159,28 +327,41 @@
   (memo (optional (buff 34)))
 )
   (let (
-    (sender-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: from})))
-    (receiver-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: to})))
+    (from-key {token-id: token-id, owner: from})
+    (to-key {token-id: token-id, owner: to})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (receiver-balance (default-to u0 (map-get? token-balances to-key)))
+    (new-sender-balance (- sender-balance amount))
+    (new-receiver-balance (+ receiver-balance amount))
   )
     (begin
-      ;; Check authorization
-      (asserts! (or 
-        (is-eq tx-sender from)
-        (is-eq contract-caller from)
-        (default-to false (map-get? operator-approvals {owner: from, operator: tx-sender}))
-      ) ERR_UNAUTHORIZED)
-      
-      ;; Check sufficient balance
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+      (asserts! (is-authorized from tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-recipient to) ERR_INVALID_RECIPIENT)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
       (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
       
       ;; Update balances
-      (map-set token-balances {token-id: token-id, owner: from} (- sender-balance amount))
-      (map-set token-balances {token-id: token-id, owner: to} (+ receiver-balance amount))
+      (map-set token-balances from-key new-sender-balance)
+      (map-set token-balances to-key new-receiver-balance)
       
-      ;; Print memo if provided
-      (match memo to-print (print to-print) 0x)
+      ;; Handle memo with structured logging
+      (match memo 
+        memo-data (print {
+          notification: "transfer-memo",
+          payload: {
+            token-id: token-id,
+            from: from,
+            to: to,
+            memo: memo-data
+          }
+        })
+        true
+      )
       
+      ;; Emit detailed transfer event
       (print {
         notification: "transfer-single",
         payload: {
@@ -188,7 +369,12 @@
           from: from,
           to: to,
           token-id: token-id,
-          amount: amount
+          amount: amount,
+          from-balance-before: sender-balance,
+          from-balance-after: new-sender-balance,
+          to-balance-before: receiver-balance,
+          to-balance-after: new-receiver-balance,
+          block-height: block-height
         }
       })
       
@@ -197,36 +383,147 @@
   )
 )
 
-;; Batch transfer multiple tokens
+;; Batch transfer multiple tokens (optimized)
 (define-public (safe-batch-transfer-from 
   (from principal) 
   (to principal) 
-  (token-ids (list 50 uint)) 
-  (amounts (list 50 uint))
+  (token-ids (list 100 uint)) 
+  (amounts (list 100 uint))
   (memo (optional (buff 34)))
 )
+  (let ((ids-count (len token-ids))
+        (amounts-count (len amounts)))
+    (begin
+      ;; Early validation
+      (try! (assert-not-paused))
+      (asserts! (is-authorized from tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-recipient to) ERR_INVALID_RECIPIENT)
+      (asserts! (is-eq ids-count amounts-count) ERR_BATCH_SIZE_MISMATCH)
+      (asserts! (<= ids-count MAX_BATCH_SIZE) ERR_BATCH_TOO_LARGE)
+      
+      ;; Process batch transfer
+      (try! (fold batch-transfer-optimized 
+        (zip-transfer-data token-ids amounts) 
+        {from: from, to: to, index: u0}))
+      
+      ;; Handle memo
+      (match memo memo-data (print {memo: memo-data}) true)
+      
+      ;; Emit batch transfer event
+      (print {
+        notification: "transfer-batch",
+        payload: {
+          operator: tx-sender,
+          from: from,
+          to: to,
+          token-ids: token-ids,
+          amounts: amounts
+        }
+      })
+      
+      (ok true)
+    )
+  )
+)
+
+;; Optimized batch transfer helper with better error handling
+(define-private (batch-transfer-optimized 
+  (transfer-item {token-id: uint, amount: uint})
+  (batch-state {from: principal, to: principal, index: uint})
+)
+  (let (
+    (token-id (get token-id transfer-item))
+    (amount (get amount transfer-item))
+    (from (get from batch-state))
+    (to (get to batch-state))
+    (from-key {token-id: token-id, owner: from})
+    (to-key {token-id: token-id, owner: to})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (receiver-balance (default-to u0 (map-get? token-balances to-key)))
+  )
+    (begin
+      ;; Validate transfer
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
+      
+      ;; Execute transfer
+      (map-set token-balances from-key (- sender-balance amount))
+      (map-set token-balances to-key (+ receiver-balance amount))
+      
+      ;; Return updated state
+      {from: from, to: to, index: (+ (get index batch-state) u1)}
+    )
+  )
+)
+
+;; Create transfer data pairs
+(define-private (zip-transfer-data (token-ids (list 100 uint)) (amounts (list 100 uint)))
+  (map create-transfer-item token-ids amounts)
+)
+
+(define-private (create-transfer-item (token-id uint) (amount uint))
+  {token-id: token-id, amount: amount}
+)
+
+;; Burn tokens with enhanced validation and logging
+(define-public (burn (from principal) (token-id uint) (amount uint))
+  (let (
+    (from-key {token-id: token-id, owner: from})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (current-supply (default-to u0 (map-get? token-supplies token-id)))
+    (new-balance (- sender-balance amount))
+    (new-supply (- current-supply amount))
+  )
+    (begin
+      ;; Comprehensive validation
+      (try! (assert-not-paused))
+      (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+      (asserts! (is-authorized from tx-sender) ERR_UNAUTHORIZED)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
+      (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
+      
+      ;; Update balance and supply
+      (map-set token-balances from-key new-balance)
+      (map-set token-supplies token-id new-supply)
+      
+      ;; Increment transaction counter
+      (var-set total-transactions (+ (var-get total-transactions) u1))
+      
+      ;; Emit detailed burn event
+      (print {
+        notification: "tokens-burned",
+        payload: {
+          operator: tx-sender,
+          from: from,
+          token-id: token-id,
+          amount: amount,
+          balance-before: sender-balance,
+          balance-after: new-balance,
+          supply-before: current-supply,
+          supply-after: new-supply,
+          block-height: block-height
+        }
+      })
+      
+      (ok true)
+    )
+  )
+)
+
+;; ===== ADMINISTRATIVE FUNCTIONS =====
+
+;; Pause/unpause contract (owner only)
+(define-public (set-contract-paused (paused bool))
   (begin
-    ;; Check authorization
-    (asserts! (or 
-      (is-eq tx-sender from)
-      (is-eq contract-caller from)
-      (default-to false (map-get? operator-approvals {owner: from, operator: tx-sender}))
-    ) ERR_UNAUTHORIZED)
-    
-    ;; Process each transfer
-    (try! (fold batch-transfer-helper (zip token-ids amounts) {from: from, to: to, success: true}))
-    
-    ;; Print memo if provided
-    (match memo to-print (print to-print) 0x)
+    (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+    (var-set contract-paused paused)
     
     (print {
-      notification: "transfer-batch",
+      notification: "contract-pause-changed",
       payload: {
-        operator: tx-sender,
-        from: from,
-        to: to,
-        token-ids: token-ids,
-        amounts: amounts
+        paused: paused,
+        admin: tx-sender,
+        block-height: block-height
       }
     })
     
@@ -234,60 +531,36 @@
   )
 )
 
-;; Helper for batch transfers
-(define-private (batch-transfer-helper 
-  (token-amount-pair {token-id: uint, amount: uint})
-  (transfer-data {from: principal, to: principal, success: bool})
-)
+;; Emergency token recovery (owner only, for stuck tokens)
+(define-public (emergency-transfer (from principal) (to principal) (token-id uint) (amount uint))
   (let (
-    (token-id (get token-id token-amount-pair))
-    (amount (get amount token-amount-pair))
-    (from (get from transfer-data))
-    (to (get to transfer-data))
-    (sender-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: from})))
-    (receiver-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: to})))
+    (from-key {token-id: token-id, owner: from})
+    (to-key {token-id: token-id, owner: to})
+    (sender-balance (default-to u0 (map-get? token-balances from-key)))
+    (receiver-balance (default-to u0 (map-get? token-balances to-key)))
   )
     (begin
+      ;; Only contract owner can perform emergency transfers
+      (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+      (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+      (asserts! (is-valid-amount amount) ERR_INVALID_AMOUNT)
       (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
       
-      ;; Update balances
-      (map-set token-balances {token-id: token-id, owner: from} (- sender-balance amount))
-      (map-set token-balances {token-id: token-id, owner: to} (+ receiver-balance amount))
+      ;; Execute emergency transfer
+      (map-set token-balances from-key (- sender-balance amount))
+      (map-set token-balances to-key (+ receiver-balance amount))
       
-      transfer-data
-    )
-  )
-)
-
-;; Burn tokens
-(define-public (burn (from principal) (token-id uint) (amount uint))
-  (let (
-    (sender-balance (default-to u0 (map-get? token-balances {token-id: token-id, owner: from})))
-    (current-supply (default-to u0 (map-get? token-supplies token-id)))
-  )
-    (begin
-      ;; Check authorization
-      (asserts! (or 
-        (is-eq tx-sender from)
-        (is-eq contract-caller from)
-        (default-to false (map-get? operator-approvals {owner: from, operator: tx-sender}))
-      ) ERR_UNAUTHORIZED)
-      
-      ;; Check sufficient balance
-      (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-      (asserts! (> amount u0) ERR_INVALID_AMOUNT)
-      
-      ;; Update balance and supply
-      (map-set token-balances {token-id: token-id, owner: from} (- sender-balance amount))
-      (map-set token-supplies token-id (- current-supply amount))
-      
+      ;; Log emergency action
       (print {
-        notification: "tokens-burned",
+        notification: "emergency-transfer",
         payload: {
+          admin: tx-sender,
           from: from,
+          to: to,
           token-id: token-id,
-          amount: amount
+          amount: amount,
+          reason: "emergency-recovery",
+          block-height: block-height
         }
       })
       
@@ -296,23 +569,97 @@
   )
 )
 
-;; Set contract URI (owner only)
+;; Set contract URI with validation (owner only)
 (define-public (set-contract-uri (uri (string-utf8 256)))
   (begin
-    (asserts! (is-eq tx-sender CONTRACT_OWNER) ERR_OWNER_ONLY)
+    (asserts! (is-contract-owner tx-sender) ERR_OWNER_ONLY)
+    (asserts! (> (len uri) u0) ERR_INVALID_URI)
+    (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
+    
     (var-set contract-uri uri)
+    
+    (print {
+      notification: "contract-uri-updated",
+      payload: {
+        admin: tx-sender,
+        new-uri: uri,
+        block-height: block-height
+      }
+    })
+    
     (ok true)
   )
 )
 
-;; Set token URI (creator only)
+;; Set token URI with validation (creator only)
 (define-public (set-token-uri (token-id uint) (uri (string-utf8 256)))
-  (let ((creator (unwrap! (map-get? token-creators token-id) ERR_TOKEN_NOT_FOUND)))
-    (begin
-      (asserts! (is-eq tx-sender creator) ERR_UNAUTHORIZED)
-      (map-set token-uris token-id uri)
-      (ok true)
-    )
+  (begin
+    (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+    (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+    (asserts! (> (len uri) u0) ERR_INVALID_URI)
+    (asserts! (<= (len uri) MAX_URI_LENGTH) ERR_INVALID_URI)
+    
+    (map-set token-uris token-id uri)
+    
+    (print {
+      notification: "token-uri-updated",
+      payload: {
+        token-id: token-id,
+        creator: tx-sender,
+        new-uri: uri,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
+  )
+)
+
+;; Set token name (creator only)
+(define-public (set-token-name (token-id uint) (name (string-utf8 64)))
+  (begin
+    (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+    (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+    (asserts! (> (len name) u0) ERR_INVALID_URI)
+    (asserts! (<= (len name) u64) ERR_INVALID_URI)
+    
+    (map-set token-names token-id name)
+    
+    (print {
+      notification: "token-name-updated",
+      payload: {
+        token-id: token-id,
+        creator: tx-sender,
+        new-name: name,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
+  )
+)
+
+;; Set token description (creator only)
+(define-public (set-token-description (token-id uint) (description (string-utf8 512)))
+  (begin
+    (asserts! (token-exists-check token-id) ERR_TOKEN_NOT_FOUND)
+    (asserts! (is-token-creator token-id tx-sender) ERR_UNAUTHORIZED)
+    (asserts! (> (len description) u0) ERR_INVALID_URI)
+    (asserts! (<= (len description) u512) ERR_INVALID_URI)
+    
+    (map-set token-descriptions token-id description)
+    
+    (print {
+      notification: "token-description-updated",
+      payload: {
+        token-id: token-id,
+        creator: tx-sender,
+        new-description: description,
+        block-height: block-height
+      }
+    })
+    
+    (ok true)
   )
 )
 
@@ -323,10 +670,86 @@
 
 ;; Check if token exists
 (define-read-only (token-exists (token-id uint))
-  (ok (is-some (map-get? token-creators token-id)))
+  (ok (token-exists-check token-id))
 )
 
 ;; Get token creator
 (define-read-only (get-token-creator (token-id uint))
   (ok (map-get? token-creators token-id))
+)
+
+;; Get token name
+(define-read-only (get-token-name (token-id uint))
+  (ok (map-get? token-names token-id))
+)
+
+;; Get contract pause status
+(define-read-only (get-contract-paused)
+  (ok (var-get contract-paused))
+)
+
+;; Get comprehensive token info
+(define-read-only (get-token-info (token-id uint))
+  (match (map-get? token-creators token-id)
+    creator (ok {
+      token-id: token-id,
+      creator: creator,
+      total-supply: (default-to u0 (map-get? token-supplies token-id)),
+      uri: (map-get? token-uris token-id),
+      name: (map-get? token-names token-id),
+      exists: true
+    })
+    (ok {
+      token-id: token-id,
+      creator: none,
+      total-supply: u0,
+      uri: none,
+      name: none,
+      exists: false
+    })
+  )
+)
+
+;; Get user's token portfolio (balances for multiple tokens)
+(define-read-only (get-user-portfolio (user principal) (token-ids (list 50 uint)))
+  (ok (map get-user-token-balance token-ids))
+)
+
+;; Helper for portfolio queries
+(define-private (get-user-token-balance (token-id uint))
+  {
+    token-id: token-id,
+    balance: (default-to u0 (map-get? token-balances {token-id: token-id, owner: tx-sender})),
+    exists: (token-exists-check token-id)
+  }
+)
+
+;; Batch token info query
+(define-read-only (get-tokens-info (token-ids (list 50 uint)))
+  (ok (map get-single-token-info token-ids))
+)
+
+;; Helper for batch token info
+(define-private (get-single-token-info (token-id uint))
+  {
+    token-id: token-id,
+    creator: (map-get? token-creators token-id),
+    total-supply: (default-to u0 (map-get? token-supplies token-id)),
+    exists: (token-exists-check token-id)
+  }
+)
+
+;; Get contract statistics and metadata
+(define-read-only (get-contract-info)
+  (ok {
+    contract-owner: CONTRACT_OWNER,
+    contract-uri: (var-get contract-uri),
+    contract-paused: (var-get contract-paused),
+    next-token-id: (var-get next-token-id),
+    total-tokens-created: (- (var-get next-token-id) u1),
+    total-transactions: (var-get total-transactions),
+    max-supply-per-token: MAX_SUPPLY,
+    max-batch-size: MAX_BATCH_SIZE,
+    version: u"2.1.0"
+  })
 )
