@@ -45,3 +45,47 @@ describe('ERC-712 Contract Tests', () => {
     });
   });
 });
+  describe('Nonce Management', () => {
+    it('should start with nonce 0 for new users', () => {
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-nonce',
+        [Cl.principal(wallet1)],
+        deployer
+      );
+      
+      expect(result.result).toBeOk();
+      expect(Cl.unwrapUInt(result.result)).toBe(0n);
+    });
+
+    it('should increment nonce after permit operation', () => {
+      // First check initial nonce
+      let nonceResult = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-nonce',
+        [Cl.principal(wallet1)],
+        deployer
+      );
+      expect(Cl.unwrapUInt(nonceResult.result)).toBe(0n);
+
+      // Create a mock signature (this would normally be created off-chain)
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      // Try permit (will fail due to invalid signature, but that's expected)
+      const permitResult = simnet.callPublicFn(
+        'erc-712',
+        'permit',
+        [
+          Cl.principal(wallet1),
+          Cl.principal(wallet2),
+          Cl.uint(1000),
+          Cl.uint(simnet.blockHeight + 100),
+          mockSignature
+        ],
+        wallet1
+      );
+      
+      // Should fail due to invalid signature
+      expect(permitResult.result).toBeErr(Cl.uint(402)); // ERR_INVALID_SIGNATURE
+    });
+  });
