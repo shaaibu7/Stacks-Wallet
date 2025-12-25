@@ -600,3 +600,54 @@ describe('ERC-712 Contract Tests', () => {
       expect(info1.result).toEqual(info2.result);
     });
   });
+  describe('Multiple User Scenarios', () => {
+    it('should handle multiple users with different nonces', () => {
+      const users = [wallet1, wallet2, wallet3];
+      
+      users.forEach(user => {
+        const nonce = simnet.callReadOnlyFn(
+          'erc-712',
+          'get-nonce',
+          [Cl.principal(user)],
+          deployer
+        );
+        
+        expect(Cl.unwrapUInt(nonce.result)).toBe(0n);
+      });
+    });
+
+    it('should handle cross-user allowance queries', () => {
+      const userPairs = [
+        [wallet1, wallet2],
+        [wallet2, wallet3],
+        [wallet3, wallet1],
+        [wallet1, wallet3]
+      ];
+      
+      userPairs.forEach(([owner, spender]) => {
+        const allowance = simnet.callReadOnlyFn(
+          'erc-712',
+          'get-allowance',
+          [Cl.principal(owner), Cl.principal(spender)],
+          deployer
+        );
+        
+        expect(Cl.unwrapUInt(allowance.result)).toBe(0n);
+      });
+    });
+
+    it('should handle delegation queries for multiple users', () => {
+      const users = [wallet1, wallet2, wallet3];
+      
+      users.forEach(user => {
+        const delegate = simnet.callReadOnlyFn(
+          'erc-712',
+          'get-delegate',
+          [Cl.principal(user)],
+          deployer
+        );
+        
+        expect(Cl.isNone(delegate.result)).toBe(true);
+      });
+    });
+  });
