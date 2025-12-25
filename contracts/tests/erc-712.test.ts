@@ -570,3 +570,33 @@ describe('ERC-712 Contract Tests', () => {
       expect(result.result).toBeErr(Cl.uint(403)); // ERR_EXPIRED
     });
   });
+  describe('Contract Version and Metadata', () => {
+    it('should return correct contract version', () => {
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-contract-version',
+        [],
+        deployer
+      );
+      
+      expect(Cl.unwrapAscii(result.result)).toBe('1');
+    });
+
+    it('should return correct contract name', () => {
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-contract-name',
+        [],
+        deployer
+      );
+      
+      expect(Cl.unwrapAscii(result.result)).toBe('ERC712Contract');
+    });
+
+    it('should maintain consistent metadata across calls', () => {
+      const info1 = simnet.callReadOnlyFn('erc-712', 'get-contract-info', [], deployer);
+      const info2 = simnet.callReadOnlyFn('erc-712', 'get-contract-info', [], wallet1);
+      
+      expect(info1.result).toEqual(info2.result);
+    });
+  });
