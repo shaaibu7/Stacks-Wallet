@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import "./App.css";
 import { cvToJSON, fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
+import { useWallet } from "./components/WalletConnect";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -42,6 +43,7 @@ function formatString(cv: any): string {
 }
 
 function App() {
+  const { address, isConnected, isConnecting, connect, disconnect } = useWallet();
   const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
   const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
   const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
