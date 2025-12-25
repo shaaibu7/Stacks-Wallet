@@ -208,12 +208,19 @@ Configure via environment variables (copy `frontend/env.example` to `frontend/.e
 - `VITE_STACKS_API_URL` – optional Hiro API URL override (defaults to testnet/mainnet)
 - `VITE_CONTRACT_ADDRESS` – your deployed contract address (e.g., deployer STx…)
 - `VITE_CONTRACT_NAME` – deployed contract name (e.g., `token-contract` or timestamped variant)
+- `VITE_REOWN_PROJECT_ID` – Reown AppKit project ID (get from https://cloud.reown.com)
 
 The UI lets you:
+- **Connect wallet** using Reown AppKit (WalletConnect) for Stacks wallets
 - Load token metadata (`get-name`) and total supply (`get-total-supply`).
 - Query balances (`get-balance`) for a provided principal.
 
-No private keys are required; calls are read-only.
+**Wallet Connection:**
+- Uses Reown AppKit (formerly WalletConnect) for secure wallet connections
+- Supports Stacks Mainnet and Testnet networks
+- Configure `VITE_REOWN_PROJECT_ID` in `frontend/.env` (get from https://cloud.reown.com)
+
+No private keys are required for read-only calls; wallet connection enables future transaction signing.
 
 ---
 
