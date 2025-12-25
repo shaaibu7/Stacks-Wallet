@@ -463,3 +463,49 @@ describe('ERC-712 Contract Tests', () => {
       expect(result.result).toBeErr(Cl.uint(401)); // ERR_UNAUTHORIZED
     });
   });
+  describe('Signature Verification', () => {
+    it('should verify typed data hash generation', () => {
+      const mockStructHash = Cl.bufferFromHex('0x' + '12'.repeat(32));
+      
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'get-typed-data-hash',
+        [mockStructHash],
+        deployer
+      );
+      
+      expect(Cl.isBuff(result.result)).toBe(true);
+      // Should return a 32-byte hash
+      const hashBuffer = Cl.unwrapBuff(result.result);
+      expect(hashBuffer.length).toBe(32);
+    });
+
+    it('should validate signature status correctly', () => {
+      const mockStructHash = Cl.bufferFromHex('0x' + '12'.repeat(32));
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      const result = simnet.callReadOnlyFn(
+        'erc-712',
+        'is-valid-signature',
+        [mockStructHash, mockSignature, Cl.principal(wallet1)],
+        deployer
+      );
+      
+      // Should return false for invalid signature
+      expect(Cl.unwrapBool(result.result)).toBe(false);
+    });
+
+    it('should handle verify-typed-data function', () => {
+      const mockStructHash = Cl.bufferFromHex('0x' + '12'.repeat(32));
+      const mockSignature = Cl.bufferFromHex('0x' + '00'.repeat(65));
+      
+      const result = simnet.callPublicFn(
+        'erc-712',
+        'verify-typed-data',
+        [mockStructHash, mockSignature, Cl.principal(wallet1)],
+        deployer
+      );
+      
+      expect(result.result).toBeOk(Cl.bool(false));
+    });
+  });
