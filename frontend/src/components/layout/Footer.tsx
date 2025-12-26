@@ -1,4 +1,12 @@
 
 export default function Footer() {
-    return <div className="p-4 bg-white border-t mt-auto">Footer Placeholder</div>
+    return (
+        <footer className="border-t bg-white py-6 md:py-0">
+            <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row px-4">
+                <p className="text-center text-sm leading-loose text-gray-500 md:text-left">
+                    Built for the Stacks Ecosystem.
+                </p>
+            </div>
+        </footer>
+    )
 }
