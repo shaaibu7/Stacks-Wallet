@@ -1,3 +1,4 @@
+import { useAppKitAccount, useAppKit } from '@reown/appkit/react'
 
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react'
 import { useEffect, useState } from 'react'

@@ -86,6 +86,26 @@ export default function Dashboard() {
         )
     }
 
+    if (!isConnected) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">Connect Your Wallet</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center space-y-4">
+                        <p className="text-gray-600">
+                            Please connect your wallet to access the dashboard and manage your assets.
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Supported wallets: Leather, Hiro, and other WalletConnect compatible wallets
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">

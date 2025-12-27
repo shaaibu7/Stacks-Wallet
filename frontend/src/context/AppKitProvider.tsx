@@ -24,3 +24,5 @@ export function AppKitProvider({ children }: Props) {
         </WagmiProvider>
     )
 }
+
+export default AppKitProvider
