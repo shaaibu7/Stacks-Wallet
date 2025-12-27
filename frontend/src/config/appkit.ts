@@ -13,11 +13,26 @@ export function initializeAppKit() {
         adapters: [wagmiAdapter],
         networks,
         projectId,
+        metadata: {
+            name: 'WalletX - Multi-Signature Stacks Wallet',
+            description: 'Secure multi-signature wallet for the Stacks ecosystem',
+            url: 'https://walletx.app',
+            icons: ['https://walletx.app/icon.png']
+        },
         features: {
             email: true,
             socials: ['google', 'x', 'github', 'discord', 'apple'],
             emailShowWallets: true,
+            analytics: true,
+            onramp: true,
+            swaps: true,
         },
-        themeMode: 'light'
+        themeMode: 'light',
+        themeVariables: {
+            '--w3m-color-mix': '#FF6B35',
+            '--w3m-color-mix-strength': 20,
+            '--w3m-accent': '#FF6B35',
+            '--w3m-border-radius-master': '8px'
+        }
     })
 }
