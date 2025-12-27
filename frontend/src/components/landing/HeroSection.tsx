@@ -1,7 +1,16 @@
 import { Button } from '../ui/Button'
 import { Link } from 'react-router-dom'
+import { useWalletConnection } from '../../hooks/useWalletConnection'
 
 export default function HeroSection() {
+    const { connectBothWallets, isAnyWalletConnected, isBothWalletsConnected, isConnecting } = useWalletConnection()
+
+    const handleGetStarted = () => {
+        if (!isAnyWalletConnected) {
+            connectBothWallets()
+        }
+    }
+
     return (
         <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
             {/* Background decoration */}
@@ -23,19 +32,66 @@ export default function HeroSection() {
                         Secure your digital assets with collaborative control and advanced security features.
                     </p>
                     
+                    {/* Connection Status */}
+                    {isAnyWalletConnected && (
+                        <div className="mb-6">
+                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+                                isBothWalletsConnected 
+                                    ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                                    : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                            }`}>
+                                <div className={`w-2 h-2 rounded-full ${
+                                    isBothWalletsConnected ? 'bg-green-400' : 'bg-yellow-400'
+                                }`}></div>
+                                <span className="text-sm font-medium">
+                                    {isBothWalletsConnected 
+                                        ? 'Wallets Connected - Ready to Use!' 
+                                        : 'Partial Connection - Connect Both Wallets'
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                    
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <Link to="/dashboard">
+                        {isAnyWalletConnected ? (
+                            <Link to="/dashboard">
+                                <Button 
+                                    size="lg" 
+                                    className="w-full sm:w-auto h-14 px-8 text-lg font-semibold bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                                >
+                                    Open Dashboard
+                                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </Button>
+                            </Link>
+                        ) : (
                             <Button 
                                 size="lg" 
-                                className="w-full sm:w-auto h-14 px-8 text-lg font-semibold bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                                onClick={handleGetStarted}
+                                disabled={isConnecting}
+                                className="w-full sm:w-auto h-14 px-8 text-lg font-semibold bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 border-0 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50"
                             >
-                                Launch Wallet
-                                <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
+                                {isConnecting ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Connecting...
+                                    </>
+                                ) : (
+                                    <>
+                                        Connect Wallets
+                                        <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
+                                    </>
+                                )}
                             </Button>
-                        </Link>
+                        )}
                         
                         <Button 
                             variant="outline" 
