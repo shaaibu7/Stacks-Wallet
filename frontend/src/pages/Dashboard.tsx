@@ -6,6 +6,26 @@ import { useAppKitAccount } from '@reown/appkit/react'
 export default function Dashboard() {
     const { isConnected, address } = useAppKitAccount()
 
+    if (!isConnected) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">Connect Your Wallet</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center space-y-4">
+                        <p className="text-gray-600">
+                            Please connect your wallet to access the dashboard and manage your assets.
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Supported wallets: Leather, Hiro, and other WalletConnect compatible wallets
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -32,7 +52,29 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{isConnected ? 'Connected' : 'Disconnected'}</div>
-                        <p className="text-xs text-gray-500 break-all">{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connect wallet to view'}</p>
+                        <p className="text-xs text-gray-500 break-all">
+                            {address ? `${address.slice(0, 10)}...${address.slice(-8)}` : 'Connect wallet to view'}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Network</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">Testnet</div>
+                        <p className="text-xs text-gray-500">Stacks Testnet</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">0</div>
+                        <p className="text-xs text-gray-500">Total transactions</p>
                     </CardContent>
                 </Card>
             </div>
@@ -56,7 +98,7 @@ export default function Dashboard() {
                         <div className="flex flex-col gap-2">
                             <Button variant="outline" className="w-full justify-start">Mint Tokens</Button>
                             <Button variant="outline" className="w-full justify-start">Transfer Funds</Button>
-                            <Button variant="outline" className="w-full justify-start">Manage Clean</Button>
+                            <Button variant="outline" className="w-full justify-start">Manage Members</Button>
                         </div>
                     </CardContent>
                 </Card>
