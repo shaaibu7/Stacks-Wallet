@@ -309,6 +309,9 @@ export function AdminPage({ className = '' }: AdminPageProps) {
                         <p className="text-gray-500 text-sm">
                             © 2024 WalletX Admin Portal. Secure multi-signature wallet management platform.
                         </p>
+                        <div className="mt-2 text-xs text-gray-400">
+                            Built with React, TypeScript, and Stacks blockchain integration
+                        </div>
                     </div>
                 </div>
             </div>
