@@ -6,22 +6,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createAppKit } from "@reown/appkit/react";
 import type { UseWalletReturn, WalletError } from "../types/wallet";
-import { stacksMainnet, stacksTestnet, WALLET_CONFIG, validateProjectId } from "../config/wallet.config";
+import { validateProjectId } from "../config/wallet.config";
 import { createWalletError, extractErrorMessage, isUserRejection } from "../utils/wallet.utils";
-
-// Initialize AppKit instance (singleton pattern)
-const appKit = createAppKit({
-  adapters: ["stacks"],
-  networks: [stacksMainnet, stacksTestnet],
-  projectId: WALLET_CONFIG.PROJECT_ID,
-  metadata: {
-    name: WALLET_CONFIG.APP_NAME,
-    description: WALLET_CONFIG.APP_DESCRIPTION,
-    url: WALLET_CONFIG.APP_URL,
-  },
-});
+import { appKit } from "../lib/appkit.instance";
+import { useWalletConnection } from "../hooks/useWalletConnection";
 
 // Validate project ID on module load
 if (typeof window !== "undefined") {
@@ -50,6 +39,10 @@ export function useWallet(): UseWalletReturn {
   const [error, setError] = useState<WalletError | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isMountedRef = useRef(true);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use connection persistence hook
+  useWalletConnection();
 
   // Initialize wallet state and subscribe to changes
   useEffect(() => {
@@ -113,6 +106,10 @@ export function useWallet(): UseWalletReturn {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -133,11 +130,36 @@ export function useWallet(): UseWalletReturn {
     setIsConnecting(true);
     setError(null);
 
+    // Set connection timeout (30 seconds)
+    connectionTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current && isConnecting) {
+        setIsConnecting(false);
+        setError(
+          createWalletError(
+            "CONNECTION_TIMEOUT",
+            "Wallet connection timed out. Please try again.",
+            null
+          )
+        );
+      }
+    }, 30000);
+
     try {
       await appKit.open();
+      // Clear timeout on success
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
       // State will be updated via subscription
     } catch (err) {
       if (!isMountedRef.current) return;
+
+      // Clear timeout on error
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
 
       const errorMessage = extractErrorMessage(err);
       const isRejection = isUserRejection(err);
