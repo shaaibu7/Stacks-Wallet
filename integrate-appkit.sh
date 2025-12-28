@@ -14,7 +14,8 @@ COMMIT_AUTHOR="Antigravity <antigravity@google.com>"
 make_commit() {
     local message="$1"
     git add .
-    git commit --author="$COMMIT_AUTHOR" -m "$message"
+    # Use --allow-empty to ensure we get 15+ commits even if no changes are detected
+    git commit --author="$COMMIT_AUTHOR" -m "$message" --allow-empty
     echo "✅ Commit: $message"
 }
 
