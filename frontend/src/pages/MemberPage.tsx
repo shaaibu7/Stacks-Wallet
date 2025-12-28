@@ -4,6 +4,7 @@ import { MemberDashboard } from '../components/members/MemberDashboard'
 import { MemberStats } from '../components/members/MemberStats'
 import { MemberWithdrawalForm } from '../components/members/MemberWithdrawalForm'
 import { MemberTransactionHistory } from '../components/members/MemberTransactionHistory'
+import { MemberSettings } from '../components/members/MemberSettings'
 import { Button } from '../components/ui/Button'
 
 interface MemberPageProps {
@@ -12,7 +13,7 @@ interface MemberPageProps {
 
 export function MemberPage({ className = '' }: MemberPageProps) {
     const { stacksWallet } = useWallet()
-    const [activeTab, setActiveTab] = useState<'overview' | 'withdraw' | 'history' | 'stats'>('overview')
+    const [activeTab, setActiveTab] = useState<'overview' | 'withdraw' | 'history' | 'stats' | 'settings'>('overview')
     const [notifications, setNotifications] = useState<{ type: 'success' | 'error', message: string }[]>([])
     const [memberBalance, setMemberBalance] = useState(50000000) // 50 STX in microSTX
 
@@ -56,7 +57,8 @@ export function MemberPage({ className = '' }: MemberPageProps) {
         { id: 'overview', label: 'Overview', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z' },
         { id: 'withdraw', label: 'Withdraw', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1' },
         { id: 'history', label: 'History', icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-        { id: 'stats', label: 'Statistics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }
+        { id: 'stats', label: 'Statistics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+        { id: 'settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }
     ]
 
     if (!stacksWallet.isConnected) {
@@ -152,7 +154,7 @@ export function MemberPage({ className = '' }: MemberPageProps) {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
                                     activeTab === tab.id
                                         ? 'border-orange-500 text-orange-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -162,6 +164,11 @@ export function MemberPage({ className = '' }: MemberPageProps) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
                                 </svg>
                                 {tab.label}
+                                {tab.id === 'settings' && (
+                                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-orange-100 text-orange-600 rounded-full">
+                                        New
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </nav>
@@ -191,6 +198,14 @@ export function MemberPage({ className = '' }: MemberPageProps) {
 
                     {activeTab === 'stats' && (
                         <MemberStats memberAddress={stacksWallet.address || ''} />
+                    )}
+
+                    {activeTab === 'settings' && (
+                        <MemberSettings
+                            memberAddress={stacksWallet.address || ''}
+                            currentName="John Doe"
+                            organizationName="Tech Startup Wallet"
+                        />
                     )}
                 </div>
             </div>
