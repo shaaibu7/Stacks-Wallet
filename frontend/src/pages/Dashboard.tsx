@@ -68,7 +68,7 @@ export default function Dashboard() {
     const activeWallets = wallets.filter(wallet => wallet.isActive)
     const totalTransactions = wallets.reduce((sum, wallet) => sum + wallet.transactionCount, 0)
 
-    if (!isAnyWalletConnected) {
+    if (!isConnected && !stacksConnected) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Card className="w-full max-w-md">
