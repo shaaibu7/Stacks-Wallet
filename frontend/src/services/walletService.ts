@@ -230,3 +230,83 @@ export const validateFundingAmount = (amount: string): string | null => {
     
     return null
 }
+
+// Member validation utilities
+export const validateMemberAddress = (address: string): string | null => {
+    if (!address.trim()) {
+        return 'Member address is required'
+    }
+    
+    // Basic Stacks address validation (starts with ST or SP)
+    const stacksAddressRegex = /^S[TP][0-9A-Z]{39}$/
+    if (!stacksAddressRegex.test(address)) {
+        return 'Please enter a valid Stacks address (e.g., ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM)'
+    }
+    
+    return null
+}
+
+export const validateMemberName = (name: string): string | null => {
+    if (!name.trim()) {
+        return 'Member name is required'
+    }
+    
+    if (name.length < 2) {
+        return 'Member name must be at least 2 characters'
+    }
+    
+    if (name.length > 50) {
+        return 'Member name must be less than 50 characters'
+    }
+    
+    // Allow letters, numbers, spaces, hyphens, and underscores
+    const nameRegex = /^[a-zA-Z0-9\s\-_]+$/
+    if (!nameRegex.test(name)) {
+        return 'Member name can only contain letters, numbers, spaces, hyphens, and underscores'
+    }
+    
+    return null
+}
+
+export const validateSpendLimit = (amount: string, walletBalance: number): string | null => {
+    if (!amount.trim()) {
+        return 'Spend limit is required'
+    }
+    
+    const numAmount = parseFloat(amount)
+    if (isNaN(numAmount)) {
+        return 'Please enter a valid number'
+    }
+    
+    if (numAmount <= 0) {
+        return 'Spend limit must be greater than 0'
+    }
+    
+    const walletBalanceSTX = walletBalance / 1000000
+    if (numAmount > walletBalanceSTX) {
+        return `Spend limit cannot exceed wallet balance of ${walletBalanceSTX.toFixed(6)} STX`
+    }
+    
+    return null
+}
+
+export const validateMemberIdentifier = (identifier: string, existingIds: number[]): string | null => {
+    if (!identifier.trim()) {
+        return 'Member identifier is required'
+    }
+    
+    const numId = parseInt(identifier)
+    if (isNaN(numId)) {
+        return 'Member identifier must be a number'
+    }
+    
+    if (numId <= 0) {
+        return 'Member identifier must be a positive number'
+    }
+    
+    if (existingIds.includes(numId)) {
+        return 'This member identifier is already in use'
+    }
+    
+    return null
+}
