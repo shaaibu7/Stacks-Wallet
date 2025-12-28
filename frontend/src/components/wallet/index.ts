@@ -9,3 +9,10 @@ export { MemberListComponent } from './MemberListComponent'
 
 export type { ValidationRule, ValidationResult } from './WalletFormValidation'
 export type { CreationStep } from './WalletCreationProgress'
+
+// Re-export service types for convenience
+export type { 
+    AddMemberParams, 
+    MemberInfo, 
+    WalletCreationResult 
+} from '../../services/walletService'
