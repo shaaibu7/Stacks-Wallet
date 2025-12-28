@@ -194,6 +194,96 @@ export class WalletService {
             return []
         }
     }
+
+    static async memberWithdrawal(amount: number, receiver: string): Promise<WalletCreationResult> {
+        try {
+            if (!userSession.isUserSignedIn()) {
+                throw new Error('User not signed in')
+            }
+
+            const userData = userSession.loadUserData()
+            
+            // Convert amount to microSTX
+            const amountMicroSTX = Math.floor(amount * 1000000)
+
+            const functionArgs = [
+                uintCV(amountMicroSTX),
+                principalCV(receiver),
+                contractPrincipalCV(this.CONTRACT_ADDRESS, 'token-contract')
+            ]
+
+            const txOptions = {
+                contractAddress: this.CONTRACT_ADDRESS,
+                contractName: this.CONTRACT_NAME,
+                functionName: 'member-withdrawal',
+                functionArgs,
+                senderKey: userData.appPrivateKey,
+                validateWithAbi: false,
+                network: activeStacksNetwork,
+                anchorMode: AnchorMode.Any,
+                postConditionMode: PostConditionMode.Allow,
+            }
+
+            const transaction = await makeContractCall(txOptions)
+            const broadcastResponse = await broadcastTransaction(transaction, activeStacksNetwork)
+
+            if (broadcastResponse.error) {
+                throw new Error(broadcastResponse.error)
+            }
+
+            return {
+                success: true,
+                txId: broadcastResponse.txid
+            }
+        } catch (error) {
+            console.error('Error processing withdrawal:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+        }
+    }
+
+    static async getMemberInfo(memberAddress: string): Promise<MemberInfo | null> {
+        try {
+            // This would typically be a read-only contract call
+            // For now, we'll return mock data
+            return {
+                memberAddress: memberAddress,
+                adminAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM',
+                organizationName: 'Tech Startup Wallet',
+                name: 'John Doe',
+                active: true,
+                frozen: false,
+                spendLimit: 50000000, // 50 STX in microSTX
+                memberIdentifier: 1,
+                role: 'member'
+            }
+        } catch (error) {
+            console.error('Error fetching member info:', error)
+            return null
+        }
+    }
+
+    static async getMemberTransactions(memberAddress: string): Promise<any[]> {
+        try {
+            // This would typically be a read-only contract call
+            // For now, we'll return mock data
+            return [
+                {
+                    amount: 5000000, // 5 STX
+                    receiver: 'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG'
+                },
+                {
+                    amount: 2500000, // 2.5 STX
+                    receiver: 'ST3PF13W7Z0RRM42A8VZRVFQ75SV1K26RXEP8YGKJ'
+                }
+            ]
+        } catch (error) {
+            console.error('Error fetching member transactions:', error)
+            return []
+        }
+    }
 }
 
 // Validation utilities
