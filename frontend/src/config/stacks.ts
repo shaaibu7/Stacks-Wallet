@@ -49,3 +49,8 @@ export const getStacksUserData = () => {
     }
     return null
 }
+
+export const getStxBalance = async (address: string) => {
+    const response = await fetch(`${activeStacksNetwork.coreApiUrl}/extended/v1/address/${address}/balances`);
+    return response.json();
+}
