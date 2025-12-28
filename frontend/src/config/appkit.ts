@@ -21,7 +21,7 @@ export function initializeAppKit() {
         },
         features: {
             email: true,
-            socials: ['google', 'x', 'github', 'discord', 'apple'],
+            socials: ['google', 'x', 'github', 'discord', 'apple', 'farcaster'],
             emailShowWallets: true,
             analytics: true,
             onramp: true,
