@@ -284,6 +284,229 @@ export class WalletService {
             return []
         }
     }
+
+    // Admin-specific functions
+    static async freezeMember(memberAddress: string): Promise<WalletCreationResult> {
+        try {
+            if (!userSession.isUserSignedIn()) {
+                throw new Error('User not signed in')
+            }
+
+            const userData = userSession.loadUserData()
+
+            const functionArgs = [principalCV(memberAddress)]
+
+            const txOptions = {
+                contractAddress: this.CONTRACT_ADDRESS,
+                contractName: this.CONTRACT_NAME,
+                functionName: 'freeze-member',
+                functionArgs,
+                senderKey: userData.appPrivateKey,
+                validateWithAbi: false,
+                network: activeStacksNetwork,
+                anchorMode: AnchorMode.Any,
+                postConditionMode: PostConditionMode.Allow,
+            }
+
+            const transaction = await makeContractCall(txOptions)
+            const broadcastResponse = await broadcastTransaction(transaction, activeStacksNetwork)
+
+            if (broadcastResponse.error) {
+                throw new Error(broadcastResponse.error)
+            }
+
+            return {
+                success: true,
+                txId: broadcastResponse.txid
+            }
+        } catch (error) {
+            console.error('Error freezing member:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+        }
+    }
+
+    static async unfreezeMember(memberAddress: string): Promise<WalletCreationResult> {
+        try {
+            if (!userSession.isUserSignedIn()) {
+                throw new Error('User not signed in')
+            }
+
+            const userData = userSession.loadUserData()
+
+            const functionArgs = [principalCV(memberAddress)]
+
+            const txOptions = {
+                contractAddress: this.CONTRACT_ADDRESS,
+                contractName: this.CONTRACT_NAME,
+                functionName: 'unfreeze-member',
+                functionArgs,
+                senderKey: userData.appPrivateKey,
+                validateWithAbi: false,
+                network: activeStacksNetwork,
+                anchorMode: AnchorMode.Any,
+                postConditionMode: PostConditionMode.Allow,
+            }
+
+            const transaction = await makeContractCall(txOptions)
+            const broadcastResponse = await broadcastTransaction(transaction, activeStacksNetwork)
+
+            if (broadcastResponse.error) {
+                throw new Error(broadcastResponse.error)
+            }
+
+            return {
+                success: true,
+                txId: broadcastResponse.txid
+            }
+        } catch (error) {
+            console.error('Error unfreezing member:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+        }
+    }
+
+    static async removeMember(memberAddress: string): Promise<WalletCreationResult> {
+        try {
+            if (!userSession.isUserSignedIn()) {
+                throw new Error('User not signed in')
+            }
+
+            const userData = userSession.loadUserData()
+
+            const functionArgs = [principalCV(memberAddress)]
+
+            const txOptions = {
+                contractAddress: this.CONTRACT_ADDRESS,
+                contractName: this.CONTRACT_NAME,
+                functionName: 'remove-member',
+                functionArgs,
+                senderKey: userData.appPrivateKey,
+                validateWithAbi: false,
+                network: activeStacksNetwork,
+                anchorMode: AnchorMode.Any,
+                postConditionMode: PostConditionMode.Allow,
+            }
+
+            const transaction = await makeContractCall(txOptions)
+            const broadcastResponse = await broadcastTransaction(transaction, activeStacksNetwork)
+
+            if (broadcastResponse.error) {
+                throw new Error(broadcastResponse.error)
+            }
+
+            return {
+                success: true,
+                txId: broadcastResponse.txid
+            }
+        } catch (error) {
+            console.error('Error removing member:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+        }
+    }
+
+    static async reimburseMember(memberIdentifier: number, amount: number): Promise<WalletCreationResult> {
+        try {
+            if (!userSession.isUserSignedIn()) {
+                throw new Error('User not signed in')
+            }
+
+            const userData = userSession.loadUserData()
+            
+            // Convert amount to microSTX
+            const amountMicroSTX = Math.floor(amount * 1000000)
+
+            const functionArgs = [
+                uintCV(memberIdentifier),
+                uintCV(amountMicroSTX)
+            ]
+
+            const txOptions = {
+                contractAddress: this.CONTRACT_ADDRESS,
+                contractName: this.CONTRACT_NAME,
+                functionName: 'reimburse-member',
+                functionArgs,
+                senderKey: userData.appPrivateKey,
+                validateWithAbi: false,
+                network: activeStacksNetwork,
+                anchorMode: AnchorMode.Any,
+                postConditionMode: PostConditionMode.Allow,
+            }
+
+            const transaction = await makeContractCall(txOptions)
+            const broadcastResponse = await broadcastTransaction(transaction, activeStacksNetwork)
+
+            if (broadcastResponse.error) {
+                throw new Error(broadcastResponse.error)
+            }
+
+            return {
+                success: true,
+                txId: broadcastResponse.txid
+            }
+        } catch (error) {
+            console.error('Error reimbursing member:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+        }
+    }
+
+    static async reimburseWallet(amount: number): Promise<WalletCreationResult> {
+        try {
+            if (!userSession.isUserSignedIn()) {
+                throw new Error('User not signed in')
+            }
+
+            const userData = userSession.loadUserData()
+            
+            // Convert amount to microSTX
+            const amountMicroSTX = Math.floor(amount * 1000000)
+
+            const functionArgs = [
+                uintCV(amountMicroSTX),
+                contractPrincipalCV(this.CONTRACT_ADDRESS, 'token-contract')
+            ]
+
+            const txOptions = {
+                contractAddress: this.CONTRACT_ADDRESS,
+                contractName: this.CONTRACT_NAME,
+                functionName: 'reimburse-wallet',
+                functionArgs,
+                senderKey: userData.appPrivateKey,
+                validateWithAbi: false,
+                network: activeStacksNetwork,
+                anchorMode: AnchorMode.Any,
+                postConditionMode: PostConditionMode.Allow,
+            }
+
+            const transaction = await makeContractCall(txOptions)
+            const broadcastResponse = await broadcastTransaction(transaction, activeStacksNetwork)
+
+            if (broadcastResponse.error) {
+                throw new Error(broadcastResponse.error)
+            }
+
+            return {
+                success: true,
+                txId: broadcastResponse.txid
+            }
+        } catch (error) {
+            console.error('Error reimbursing wallet:', error)
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+        }
+    }
 }
 
 // Validation utilities
