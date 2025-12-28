@@ -27,3 +27,22 @@ export interface UseWalletReturn {
 
 export type WalletConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
+export interface WalletAccount {
+  address: string;
+  label?: string;
+  balance?: string;
+}
+
+export interface WalletNetwork {
+  id: number;
+  name: string;
+  network: "mainnet" | "testnet";
+  rpcUrl: string;
+}
+
+export interface WalletSession {
+  topic: string;
+  expiry: number;
+  accounts: WalletAccount[];
+}
+
