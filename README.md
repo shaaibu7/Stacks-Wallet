@@ -1,578 +1,307 @@
-# Stacks Wallet - Comprehensive Blockchain Wallet System
+## Stacks Wallet – SIP-010 Fungible Token Contracts
 
-> A production-ready multi-contract blockchain wallet system built on Stacks (Bitcoin Layer 2) with advanced token management, multi-signature wallet capabilities, and NFT support.
+This repository contains a minimal Stacks smart-contract project that implements a SIP‑010–compatible fungible token (“Clarity Coin”) plus a simple TypeScript test + deployment toolchain.
 
-## 🎯 Project Overview
-
-**Stacks-Wallet** is a complete blockchain wallet solution featuring:
-
-- **SIP-010 Fungible Token** - Full-featured token with allowances, burning, and metadata
-- **Multi-Signature Wallet** - Admin/member role-based wallet with spend limits
-- **Multi-Token NFT System** - ERC1155-like contract supporting batch operations
-- **TypeScript Deployment Layer** - Easy contract deployment and interaction
-- **React Frontend** - Modern UI for wallet management
-- **Comprehensive Test Suite** - 100+ test cases with full coverage
-
-### Key Statistics
-- **3 Smart Contracts** in Clarity 4
-- **100+ Test Cases** with Vitest
-- **5 Deployment Scripts** for different scenarios
-- **Full TypeScript Support** for type safety
-- **React 19 Frontend** with Tailwind CSS
+The contracts are written in Clarity and managed with Clarinet; tests and deployment utilities are written in TypeScript and use `vitest` and the `@stacks/*` libraries.
 
 ---
 
-## 🏗️ Architecture Overview
+## Project structure
 
-### System Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        STACKS BLOCKCHAIN                         │
-│                      (Bitcoin Layer 2)                           │
-└─────────────────────────────────────────────────────────────────┘
-                              ▲
-                              │
-                ┌─────────────┼─────────────┐
-                │             │             │
-        ┌───────▼────┐ ┌──────▼──────┐ ┌───▼──────────┐
-        │   Token    │ │  Wallet-X   │ │ Multi-Token  │
-        │ Contract   │ │  Contract   │ │ NFT Contract │
-        │ (SIP-010)  │ │ (Multi-Sig) │ │ (ERC1155)    │
-        └────────────┘ └─────────────┘ └──────────────┘
-                              ▲
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-   ┌────▼─────┐         ┌─────▼──────┐      ┌──────▼────┐
-   │ TypeScript│         │  Vitest    │      │  Clarinet  │
-   │ Scripts   │         │  Tests     │      │  SDK       │
-   │ (Deploy & │         │ (100+)     │      │ (Simnet)   │
-   │ Interact) │         │            │      │            │
-   └────┬─────┘         └─────┬──────┘      └──────┬────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              │
-                    ┌─────────▼────────┐
-                    │  React Frontend  │
-                    │  (Vite + React19)│
-                    │  (Tailwind CSS)  │
-                    └──────────────────┘
-```
-
-### Contract Interaction Flow
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    USER INTERACTION                          │
-│  (CLI Scripts / React Frontend / Direct Calls)              │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│              TYPESCRIPT LAYER (scripts/)                      │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐        │
-│  │   deploy.ts │  │ interact.ts  │  │ config.ts    │        │
-│  └─────────────┘  └──────────────┘  └──────────────┘        │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│         STACKS TRANSACTIONS (@stacks/transactions)           │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │  Create Transaction → Sign → Broadcast → Confirm       │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│           STACKS BLOCKCHAIN (Testnet/Mainnet)               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Token        │  │ Wallet-X     │  │ Multi-Token  │      │
-│  │ Contract     │  │ Contract     │  │ NFT Contract │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└──────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    EVENTS & LOGS                             │
-│  (Printed via Clarity print statements)                      │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Data Flow Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    DEPLOYMENT FLOW                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  .env (PRIVATE_KEY, STACKS_NETWORK)                        │
-│    │                                                        │
-│    ▼                                                        │
-│  deploy.ts                                                 │
-│    │                                                        │
-│    ├─► Read contract source (.clar)                        │
-│    │                                                        │
-│    ├─► Create deployment transaction                       │
-│    │                                                        │
-│    ├─► Sign with private key                               │
-│    │                                                        │
-│    ├─► Broadcast to Stacks network                         │
-│    │                                                        │
-│    └─► Return txid + explorer link                         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                  INTERACTION FLOW                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  User Input (CLI / Frontend)                               │
-│    │                                                        │
-│    ▼                                                        │
-│  TypeScript Script (interact.ts)                           │
-│    │                                                        │
-│    ├─► Load contract config                                │
-│    │                                                        │
-│    ├─► Create contract call transaction                    │
-│    │                                                        │
-│    ├─► Sign with private key                               │
-│    │                                                        │
-│    ├─► Broadcast to network                                │
-│    │                                                        │
-│    └─► Return result + explorer link                       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                   TESTING FLOW                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Test File (.test.ts)                                      │
-│    │                                                        │
-│    ▼                                                        │
-│  Vitest + Clarinet Environment                             │
-│    │                                                        │
-│    ├─► Initialize simnet                                   │
-│    │                                                        │
-│    ├─► Execute test cases                                  │
-│    │                                                        │
-│    ├─► Call contract functions                             │
-│    │                                                        │
-│    ├─► Assert results                                      │
-│    │                                                        │
-│    └─► Generate coverage report                            │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- **`contracts/Clarinet.toml`**: Clarinet project config for the smart contracts.
+- **`contracts/contracts/sip-010-trait.clar`**: Local copy of the SIP‑010 fungible token trait.
+- **`contracts/contracts/token-contract.clar`**: Implementation of the SIP‑010 token:
+  - Defines the `clarity-coin` fungible token.
+  - Owner-only `mint` and `set-token-uri` functions.
+  - Read-only helpers like `get-balance`, `get-total-supply`, `get-name`, `get-symbol`, `get-decimals`, and `get-token-uri`.
+- **`contracts/tests/token-contract.test.ts`**: Example `vitest` test using the Clarinet JS environment.
+- **`contracts/scripts/deploy.ts`**: Node/TypeScript script to deploy the trait and token contracts to Testnet or Mainnet.
+- **`contracts/package.json`**: NPM scripts and dependencies for testing and deployment.
 
 ---
 
-## 📁 Project Structure
+## Prerequisites
 
-```
-stacks-wallet/
-│
-├── contracts/                          # Smart contracts & deployment
-│   ├── contracts/
-│   │   ├── sip-010-trait.clar         # SIP-010 standard trait
-│   │   ├── token-contract.clar        # Fungible token implementation
-│   │   ├── wallet-x.clar              # Multi-sig wallet system
-│   │   └── multi-token-nft.clar       # ERC1155-like multi-token
-│   │
-│   ├── scripts/
-│   │   ├── deploy.ts                  # Contract deployment
-│   │   ├── interact.ts                # Token interactions
-│   │   ├── interact-wallet-x.ts       # Wallet interactions
-│   │   ├── interact-multi-token.ts    # Multi-token interactions
-│   │   └── config.ts                  # Configuration management
-│   │
-│   ├── tests/
-│   │   ├── helpers.ts                 # Test utilities
-│   │   ├── token-contract.test.ts     # Token tests (40+ cases)
-│   │   ├── wallet-x.test.ts           # Wallet tests (35+ cases)
-│   │   └── multi-token-nft.test.ts    # NFT tests (40+ cases)
-│   │
-│   ├── Clarinet.toml                  # Project configuration
-│   ├── vitest.config.ts               # Test configuration
-│   ├── tsconfig.json                  # TypeScript config
-│   └── package.json                   # Dependencies
-│
-├── frontend/                           # React UI
-│   ├── src/
-│   │   ├── components/                # React components
-│   │   ├── hooks/                     # Custom hooks
-│   │   ├── pages/                     # Page components
-│   │   ├── services/                  # API services
-│   │   ├── config/                    # Configuration
-│   │   └── App.tsx                    # Main app
-│   │
-│   ├── public/                        # Static assets
-│   ├── vite.config.ts                 # Vite configuration
-│   ├── tsconfig.json                  # TypeScript config
-│   └── package.json                   # Dependencies
-│
-├── CODEBASE_STUDY.md                  # Detailed codebase analysis
-├── README_COMPREHENSIVE.md            # This file
-└── README.md                          # Quick start guide
-```
+- **Node.js**: v18+ recommended.
+- **npm**: v9+ recommended.
+- **Clarinet** (optional but recommended for local simulation):
+  - Install via the official docs: `https://docs.hiro.so/clarinet`.
+- A **Stacks private key** (for the deployer wallet) with enough STX balance on the chosen network.
 
 ---
 
-## 🚀 Quick Start
+## Installation
 
-### Prerequisites
-- Node.js 18+
-- npm 9+
-- Clarinet (optional, for local simulation)
-
-### Installation
+From the project root:
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/stacks-wallet.git
-cd stacks-wallet
-
-# Install dependencies
 cd contracts
-npm install
-
-cd ../frontend
 npm install
 ```
 
-### Environment Setup
+This installs testing and deployment dependencies (`vitest`, `vitest-environment-clarinet`, `@stacks/transactions`, `@stacks/clarinet-sdk`, etc.).
+
+---
+
+## Environment configuration
+
+Deployment is driven by environment variables read from a `.env` file in the `contracts/` directory.
+
+Create `contracts/.env`:
 
 ```bash
-# Create .env file in contracts/
 cd contracts
-cp .env.ensample .env
+cat > .env << 'EOF'
+# Private key of the deployer (Mainnet or Testnet)
+PRIVATE_KEY=replace-with-your-private-key
 
-# Edit .env with your values
-PRIVATE_KEY=your_64_char_hex_private_key
+# or, alternatively:
+# DEPLOYER_KEY=replace-with-your-private-key
+
+# Target network: "mainnet" or "testnet"
 STACKS_NETWORK=testnet
-CONTRACT_ADDRESS=ST1ABC...XYZ.token-contract
+EOF
 ```
 
-### Running Tests
+Notes:
+
+- **`PRIVATE_KEY`** or **`DEPLOYER_KEY`** must be set; if both are provided, `PRIVATE_KEY` takes precedence.
+- **`STACKS_NETWORK`** defaults to `mainnet` if not set.
+
+Never commit real private keys to version control.
+
+---
+
+## Running tests
+
+All test commands are run from the `contracts/` directory.
+
+- **Single test run (no watch):**
 
 ```bash
 cd contracts
-
-# Run all tests
 npm test
+```
 
-# Run with coverage
+- **With coverage and costs (as configured in `package.json`):**
+
+```bash
+cd contracts
 npm run test:report
+```
 
-# Watch mode
+- **Watch mode (re-runs when `.clar` or test files change):**
+
+```bash
+cd contracts
 npm run test:watch
 ```
 
-### Deployment
+The sample test in `token-contract.test.ts` demonstrates how to access the Clarinet `simnet` environment and accounts. Extend this file with additional tests for your contract behavior (minting, transfers, etc.).
+
+---
+
+## Deploying contracts
+
+The deployment flow is scripted in `contracts/scripts/deploy.ts` and is exposed via an NPM script.
+
+From the `contracts/` directory:
 
 ```bash
 cd contracts
-
-# Deploy to testnet
-STACKS_NETWORK=testnet npm run deploy
-
-# Deploy to mainnet
-STACKS_NETWORK=mainnet npm run deploy
+npm run deploy
 ```
 
-### Interaction
+What this does:
 
-```bash
-cd contracts
+- Loads environment variables from `.env`.
+- Determines the target network based on `STACKS_NETWORK` (`mainnet` or `testnet`).
+- Deploys, in order:
+  1. **`sip-010-trait.clar`** as the trait contract.
+  2. **`token-contract.clar`** as the fungible token implementation, with a **unique name per deployment**:
+     - Contract name format: `token-contract-<timestamp>`.
+- Logs:
+  - The network being targeted.
+  - The transaction IDs for each deployment.
+  - Explorer links (via `https://explorer.hiro.so`) for quick verification.
 
-# Get token info
-npm run interact info
+If deployment fails (e.g., missing env vars, insufficient balance, invalid key), the script prints an error and exits with a non‑zero code.
 
-# Check balance
-npm run interact balance ST1ABC...XYZ
+---
 
-# Transfer tokens
-npm run interact transfer 1000000 ST1ABC...XYZ
+## Contract overview
 
-# Mint tokens (owner only)
-npm run interact mint 5000000 ST1ABC...XYZ
+The main token contract (`token-contract.clar`) implements:
 
-# Wallet operations
-npm run interact-wallet register-wallet "My Wallet" 1000000
-npm run interact-wallet onboard-member ST1ABC...XYZ "John Doe" 100000 1
-```
+- **Token definition**
+  - `define-fungible-token clarity-coin`
+  - Name: **"Clarity Coin"**
+  - Symbol: **"CC"**
+  - Decimals: **6** (i.e., 1 token = 1_000_000 base units)
 
-### Frontend Development
+- **Read-only SIP‑010 interfaces**
+  - `get-balance (who principal)` → current balance of `who`.
+  - `get-total-supply ()` → total supply of `clarity-coin`.
+  - `get-name ()`, `get-symbol ()`, `get-decimals ()` → token metadata.
+  - `get-token-uri ()` → optional metadata URI.
+
+- **Admin / owner-only operations**
+  - `set-token-uri (value (string-utf8 256))`
+    - Only callable by the contract owner.
+    - Updates the `token-uri` data-var.
+    - Emits a metadata update notification (SIP‑019 style).
+  - `mint (amount uint) (recipient principal)`
+    - Only callable by the contract owner.
+    - Mints new tokens to `recipient`.
+
+- **Transfers**
+  - `transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))`
+    - Enforces that `sender` matches `tx-sender` or `contract-caller`.
+    - Calls `ft-transfer?` internally.
+    - Optionally logs the `memo` buffer.
+
+---
+
+## Local development tips
+
+- **Clarinet console** (if Clarinet is installed):
+  - From `contracts/`, you can open a REPL and interact with contracts:
+
+    ```bash
+    clarinet console
+    ```
+
+  - Use it to call contract functions, inspect state, and prototype interactions.
+
+- **Extending tests**:
+  - Use `simnet.callPublicFn`, `simnet.callReadOnlyFn`, and `simnet.mineBlock` (see Clarinet JS docs) to simulate transactions and blocks.
+  - Add assertions around balances, minting limits, and access control.
+
+---
+
+## Scripts reference
+
+All scripts live in `contracts/package.json`:
+
+- **`npm test`**: Run unit tests once using `vitest`.
+- **`npm run test:report`**: Run tests with coverage and cost reporting.
+- **`npm run test:watch`**: Watch `.clar` and test files, re-running `test:report` on changes.
+- **`npm run deploy`**: Deploy SIP‑010 trait and token contracts to the configured Stacks network.
+
+---
+
+## Frontend (React + Vite)
+
+A lightweight UI is available under `frontend/` to query your deployed SIP‑010 token (read-only: name, total supply, balances).
+
+Setup and run:
 
 ```bash
 cd frontend
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+npm install          # already done once after scaffolding
+npm run dev          # start Vite dev server
 ```
 
----
+Configure via environment variables (copy `frontend/env.example` to `frontend/.env`):
 
-## 📋 Smart Contracts
+- `VITE_STACKS_NETWORK` – `testnet` (default) or `mainnet`
+- `VITE_STACKS_API_URL` – optional Hiro API URL override (defaults to testnet/mainnet)
+- `VITE_CONTRACT_ADDRESS` – your deployed contract address (e.g., deployer STx…)
+- `VITE_CONTRACT_NAME` – deployed contract name (e.g., `token-contract` or timestamped variant)
+- `VITE_REOWN_PROJECT_ID` – Reown AppKit project ID (get from https://cloud.reown.com)
 
-### 1. Token Contract (SIP-010)
+The UI lets you:
+- **Connect wallet** using Reown AppKit (WalletConnect) for Stacks wallets
+- Load token metadata (`get-name`) and total supply (`get-total-supply`).
+- Query balances (`get-balance`) for a provided principal.
 
-**Features:**
-- ✅ Minting (owner only)
-- ✅ Transfers with memo
-- ✅ Allowance system
-- ✅ Burning
-- ✅ Pause mechanism
-- ✅ Event logging
+**Wallet Connection:**
+- Uses Reown AppKit (formerly WalletConnect) for secure wallet connections
+- Supports Stacks Mainnet and Testnet networks
+- Configure `VITE_REOWN_PROJECT_ID` in `frontend/.env` (get from https://cloud.reown.com)
 
-**Token Details:**
-- Name: Clarity Coin
-- Symbol: CC
-- Decimals: 6
-- Max Supply: Unlimited
-
-**Key Functions:**
-```clarity
-(mint (amount uint) (recipient principal)) -> response(bool, uint)
-(transfer (amount uint) (sender principal) (recipient principal) (memo optional)) -> response(bool, uint)
-(approve (spender principal) (amount uint)) -> response(bool, uint)
-(transfer-from (owner principal) (recipient principal) (amount uint) (memo optional)) -> response(bool, uint)
-(burn (amount uint)) -> response(bool, uint)
-```
-
-### 2. Wallet-X Contract (Multi-Sig)
-
-**Features:**
-- ✅ Wallet registration
-- ✅ Member onboarding
-- ✅ Spend limits
-- ✅ Freeze/unfreeze
-- ✅ Transaction history
-- ✅ Fund recovery
-
-**Key Functions:**
-```clarity
-(register-wallet (wallet-name string-utf8-256) (fund-amount uint) (token <sip-010-trait>)) -> response(uint, uint)
-(onboard-member (member-address principal) (member-name string-utf8-256) (fund-amount uint) (member-identifier uint)) -> response(bool, uint)
-(member-withdrawal (amount uint) (receiver principal) (token <sip-010-trait>)) -> response(bool, uint)
-(freeze-member (member-address principal)) -> response(bool, uint)
-(remove-member (member-address principal)) -> response(uint, uint)
-```
-
-### 3. Multi-Token NFT Contract (ERC1155)
-
-**Features:**
-- ✅ Token creation with metadata
-- ✅ Royalty support
-- ✅ Batch transfers
-- ✅ Operator approvals
-- ✅ Burning
-- ✅ Emergency recovery
-
-**Key Functions:**
-```clarity
-(create-token-with-royalty (initial-supply uint) (uri string-utf8-256) (name string-utf8-64) (description string-utf8-512) (royalty-percentage uint)) -> response(uint, uint)
-(mint (to principal) (token-id uint) (amount uint)) -> response(bool, uint)
-(safe-transfer-from (from principal) (to principal) (token-id uint) (amount uint) (memo optional)) -> response(bool, uint)
-(safe-batch-transfer-from (from principal) (to principal) (token-ids list) (amounts list) (memo optional)) -> response(bool, uint)
-(burn (from principal) (token-id uint) (amount uint)) -> response(bool, uint)
-```
+No private keys are required for read-only calls; wallet connection enables future transaction signing.
 
 ---
 
-## 🧪 Testing
+## Hiro Chainhooks (webhook listener)
 
-### Test Coverage
+This repo integrates **Hiro Chainhooks** to monitor on-chain activity for your SIP-010 token contracts. Chainhooks watch the Stacks blockchain and POST events to your webhook server when `mint` or `transfer` calls occur.
 
-- **Token Contract**: 40+ test cases
-  - Metadata queries
-  - Minting operations
-  - Transfer operations
-  - Balance queries
-  - Allowance system
-  - Error conditions
+### Deployed Contracts
 
-- **Wallet-X Contract**: 35+ test cases
-  - Wallet registration
-  - Member management
-  - Withdrawal operations
-  - Freeze/unfreeze
-  - Authorization checks
-  - Read-only functions
+**Mainnet:**
+- Contract: `SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.token-contract-v2-1766049545741`
+- Trait: `SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.sip-010-trait`
 
-- **Multi-Token NFT**: 40+ test cases
-  - Token creation
-  - Minting
-  - Single transfers
-  - Batch transfers
-  - Approvals
-  - Burning
-  - Emergency recovery
+**Testnet:**
+- Contract: `ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.token-contract-1765968837127`
+- Trait: `ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.sip-010-trait`
 
-### Running Tests
+### Chainhook Definitions
 
-```bash
-# All tests
-npm test
+Two YAML configs are provided:
 
-# With coverage report
-npm run test:report
+- **`ops/chainhooks/token-contract.yaml`** (testnet)
+  - Watches testnet contract `mint` and `transfer` calls
+  - Contract: `ST1EQNTKNRGME36P9EEXZCFFNCYBA50VN6SHNZ40.token-contract-1765968837127`
 
-# Watch mode
-npm run test:watch
+- **`ops/chainhooks/token-contract-mainnet.yaml`** (mainnet)
+  - Watches mainnet contract v2 `mint` and `transfer` calls
+  - Contract: `SP1EQNTKNRGME36P9EEXZCFFNCYBA50VN51676JB.token-contract-v2-1766049545741`
 
-# Specific test file
-npm test token-contract.test.ts
-```
+Both configs need:
+- `delivery.url`: your deployed webhook endpoint (e.g., `https://your-app.railway.app/hooks/stacks`)
+- `delivery.secret`: shared secret matching `CHAINHOOK_SECRET` in `hooks-server/.env`
 
----
+### Webhook Server (Node/Express)
 
-## 🔐 Security Features
+- **Location**: `hooks-server/`
+- **Quick start**:
 
-### Authorization
-- Owner-only functions
-- Role-based access control (admin/member)
-- Caller verification
+  ```bash
+  cd hooks-server
+  cp env.example .env   # set CHAINHOOK_SECRET and PORT
+  npm install
+  npm run dev           # starts on PORT (default 3001)
+  ```
 
-### Input Validation
-- Amount validation (> 0)
-- Principal validation
-- String length limits
-- Royalty percentage bounds (0-10000 basis points)
+- **Endpoints**:
+  - `POST /hooks/stacks` — receives Chainhook events
+    - Verifies HMAC signature if `CHAINHOOK_SECRET` is set
+    - Stores events in memory (up to `MAX_EVENTS`, default 500)
+  - `GET /activity` — returns recent events
+    - Query params: `?limit=50&network=mainnet&txid=...`
+  - `GET /health` — health check
 
-### Overflow/Underflow Protection
-- Allowance overflow checks
-- Supply limit validation
-- Balance validation before transfers
+### Frontend Integration
 
-### Pause Mechanism
-- Contract pause/unpause
-- All state-changing functions check pause status
-- Emergency recovery functions
+The React frontend can display activity from Chainhooks:
 
-### Error Handling
-- Consistent error codes (100-149 ranges)
-- Descriptive error messages
-- Validation before state changes
+- Set `VITE_HOOKS_SERVER_URL` in `frontend/.env` (e.g., `http://localhost:3001` or your deployed URL)
+- The UI will fetch and display recent `mint`/`transfer` events from `GET /activity`
 
----
+### Registering Chainhooks
 
-## 📊 Performance Characteristics
+1. **Deploy your webhook server** (public HTTPS):
+   - Options: Railway, Render, Fly.io, or your own VPS
+   - Ensure `POST /hooks/stacks` is accessible
 
-### Gas Efficiency
-- Batch operations reduce transaction count
-- Optimized map lookups
-- Minimal state changes
+2. **Update chainhook YAML files**:
+   - Set `delivery.url` to your webhook endpoint
+   - Set `delivery.secret` to match `CHAINHOOK_SECRET` in `hooks-server/.env`
 
-### Storage
-- Maps for flexible storage
-- Lists with size limits (100-1000 items)
-- Efficient key structures
+3. **Register with Hiro Chainhooks service**:
+   - Use the Hiro Chainhooks CLI/API to register each YAML config
+   - Start with testnet (`token-contract.yaml`) for testing
 
-### Scalability
-- Supports unlimited tokens (multi-token)
-- Supports unlimited members (wallet-x)
-- Batch operations for efficiency
+4. **Verify**:
+   - Trigger `mint` or `transfer` calls on your contract
+   - Check `GET /activity` endpoint for new events
+   - View activity in the frontend UI
 
 ---
 
-## 🌐 Network Support
+## License
 
-### Testnet
-- Network: Stacks Testnet
-- Explorer: https://testnet.explorer.hiro.so
-- Faucet: https://testnet.stacks.org/faucet
-
-### Mainnet
-- Network: Stacks Mainnet
-- Explorer: https://explorer.hiro.so
-- Production ready
-
----
-
-## 📚 Documentation
-
-- **CODEBASE_STUDY.md** - Detailed codebase analysis
-- **README_COMPREHENSIVE.md** - This file
-- **contracts/README-INTERACTION.md** - Interaction guide
-- **contracts/QUICK_START.md** - Quick start guide
-
----
-
-## 🛠️ Development
-
-### Adding New Features
-
-1. **Create contract function** in `.clar` file
-2. **Add tests** in corresponding `.test.ts` file
-3. **Update interaction script** if needed
-4. **Update documentation**
-5. **Run tests** to verify
-
-### Code Style
-
-- **Clarity**: Follow SIP-010 standards
-- **TypeScript**: Use strict mode
-- **Tests**: Use descriptive names
-- **Comments**: Document complex logic
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
----
-
-## 📝 License
-
-This project is licensed under the ISC License - see LICENSE file for details.
-
----
-
-## 🔗 Resources
-
-- [Stacks Documentation](https://docs.stacks.co)
-- [Clarity Language](https://docs.stacks.co/clarity)
-- [SIP-010 Standard](https://github.com/stacksgov/sips/blob/main/sips/sip-010/sip-010-fungible-token-standard.md)
-- [Stacks.js Documentation](https://docs.stacks.co/stacks-js)
-- [Clarinet SDK](https://docs.hiro.so/clarinet)
-
----
-
-## 📞 Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check existing documentation
-- Review test cases for examples
-
----
-
-## 🎉 Acknowledgments
-
-Built with:
-- [Stacks Blockchain](https://www.stacks.co)
-- [Clarity Language](https://clarity-lang.org)
-- [Stacks.js](https://github.com/hirosystems/stacks.js)
-- [Vitest](https://vitest.dev)
-- [React](https://react.dev)
-- [Vite](https://vitejs.dev)
-
----
-
-**Last Updated**: December 2024
-**Version**: 2.0.0
-**Status**: Production Ready ✅
+This project is licensed under the terms specified in `LICENSE`.
