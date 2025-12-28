@@ -3,11 +3,17 @@
  */
 
 import type { WalletError } from "../types/wallet";
+import { WALLET_CONSTANTS } from "./wallet.constants";
 
 /**
  * Formats a Stacks address for display (truncates middle)
  */
-export function formatAddress(address: string, startChars = 6, endChars = 4): string {
+export function formatAddress(
+  address: string,
+  startChars = WALLET_CONSTANTS.ADDRESS_START_CHARS,
+  endChars = WALLET_CONSTANTS.ADDRESS_END_CHARS
+): string {
+  if (!address) return "";
   if (address.length <= startChars + endChars) {
     return address;
   }
