@@ -14,14 +14,14 @@ export function initializeAppKit() {
         networks,
         projectId,
         metadata: {
-            name: 'WalletX - Multi-Signature Stacks Wallet',
+            name: 'Stacks-Wallet',
             description: 'Secure multi-signature wallet for the Stacks ecosystem',
             url: 'https://walletx.app',
             icons: ['https://walletx.app/icon.png']
         },
         features: {
             email: true,
-            socials: ['google', 'x', 'github', 'discord', 'apple'],
+            socials: ['google', 'x', 'github', 'discord', 'apple', 'farcaster'],
             emailShowWallets: true,
             analytics: true,
             onramp: true,
