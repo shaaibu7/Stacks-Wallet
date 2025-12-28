@@ -3,6 +3,7 @@ import "./App.css";
 import { cvToJSON, fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import { useWallet } from "./components/WalletConnect";
+import { formatAddress } from "./utils/wallet.utils";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -43,7 +44,7 @@ function formatString(cv: any): string {
 }
 
 function App() {
-  const { address, isConnected, connect, disconnect } = useWallet();
+  const { address, isConnected, isConnecting, error: walletError, connect, disconnect, clearError } = useWallet();
   const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
   const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
   const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
@@ -181,20 +182,57 @@ function App() {
             and balances. This UI uses read-only calls (no private keys required).
           </p>
         </div>
-        <div style={{ marginTop: "1rem" }}>
+        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {isConnected ? (
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <span style={{ fontSize: "0.875rem", color: "#fff" }}>
-                {address?.slice(0, 6)}...{address?.slice(-4)}
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.875rem", color: "#fff", fontFamily: "monospace" }}>
+                {address ? formatAddress(address) : ""}
               </span>
-              <button onClick={disconnect} style={{ padding: "0.5rem 1rem" }}>
+              <button 
+                onClick={disconnect} 
+                style={{ padding: "0.5rem 1rem" }}
+                disabled={isConnecting}
+              >
                 Disconnect
               </button>
             </div>
           ) : (
-            <button onClick={connect} style={{ padding: "0.5rem 1rem" }}>
-              Connect Wallet
+            <button 
+              onClick={connect} 
+              disabled={isConnecting}
+              style={{ padding: "0.5rem 1rem" }}
+            >
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
             </button>
+          )}
+          {walletError && (
+            <div style={{ 
+              padding: "0.5rem", 
+              backgroundColor: "rgba(255, 0, 0, 0.1)", 
+              border: "1px solid rgba(255, 0, 0, 0.3)",
+              borderRadius: "4px",
+              fontSize: "0.875rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "0.5rem"
+            }}>
+              <span style={{ color: "#ff6b6b" }}>{walletError.message}</span>
+              <button 
+                onClick={clearError}
+                style={{ 
+                  padding: "0.25rem 0.5rem", 
+                  fontSize: "0.75rem",
+                  background: "transparent",
+                  border: "none",
+                  color: "#ff6b6b",
+                  cursor: "pointer"
+                }}
+                title="Dismiss error"
+              >
+                ×
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -227,11 +265,24 @@ function App() {
           </label>
           <label className="field">
             <span>Principal to check balance</span>
-            <input
-              value={principal}
-              onChange={(e) => setPrincipal(e.target.value)}
-              placeholder="ST... or contract principal"
-            />
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input
+                value={principal}
+                onChange={(e) => setPrincipal(e.target.value)}
+                placeholder={isConnected ? address || "ST... or contract principal" : "ST... or contract principal"}
+                style={{ flex: 1 }}
+              />
+              {isConnected && address && (
+                <button
+                  type="button"
+                  onClick={() => setPrincipal(address)}
+                  style={{ padding: "0.5rem 1rem", whiteSpace: "nowrap" }}
+                  title="Use connected wallet address"
+                >
+                  Use Wallet
+                </button>
+              )}
+            </div>
           </label>
       </div>
         <div className="actions">
