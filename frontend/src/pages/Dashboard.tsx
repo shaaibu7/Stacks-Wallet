@@ -73,7 +73,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">Connect Your Wallets</CardTitle>
+                        <CardTitle className="text-2xl">Get Started with WalletX</CardTitle>
                     </CardHeader>
                     <CardContent className="text-center space-y-4">
                         <p className="text-gray-600">
