@@ -9,7 +9,7 @@ export const stacksNetworks = {
     mainnet: new StacksMainnet(),
 }
 
-export const activeStacksNetwork = stacksNetworks.testnet
+export const activeStacksNetwork = import.meta.env.PROD ? stacksNetworks.mainnet : stacksNetworks.testnet
 
 // App configuration for Stacks Connect
 export const appConfig = new AppConfig(['store_write', 'publish_data'])
