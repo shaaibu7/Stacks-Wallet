@@ -82,14 +82,22 @@ export function AddMemberComponent({
         // Format contract errors to be more user-friendly
         let formattedError = error
 
-        if (error.includes('ERR_INSUFFICIENT_FUNDS')) {
+        if (error.includes('ERR_INSUFFICIENT_FUNDS') || error.includes('u102')) {
             formattedError = 'Insufficient wallet balance to onboard member with this spend limit'
-        } else if (error.includes('ERR_NOT_ADMIN')) {
+        } else if (error.includes('ERR_NOT_ADMIN') || error.includes('u100')) {
             formattedError = 'Your wallet is not active or you don\'t have admin permissions'
-        } else if (error.includes('ERR_WALLET_EXISTS')) {
+        } else if (error.includes('ERR_WALLET_EXISTS') || error.includes('u101')) {
             formattedError = 'A member with this identifier already exists in your organization'
-        } else if (error.includes('network') || error.includes('connection')) {
-            formattedError = 'Transaction failed due to network issues. Please try again.'
+        } else if (error.includes('ERR_MEMBER_NOT_FOUND') || error.includes('u106')) {
+            formattedError = 'Member not found in your organization'
+        } else if (error.includes('ERR_NOT_AUTHORIZED') || error.includes('u107')) {
+            formattedError = 'You are not authorized to perform this action'
+        } else if (error.includes('network') || error.includes('connection') || error.includes('timeout')) {
+            formattedError = 'Transaction failed due to network issues. Please check your connection and try again.'
+        } else if (error.includes('User denied') || error.includes('rejected')) {
+            formattedError = 'Transaction was cancelled by user'
+        } else if (error.includes('insufficient funds') || error.includes('balance')) {
+            formattedError = 'Insufficient funds in your wallet to complete this transaction'
         }
 
         onError?.(formattedError)

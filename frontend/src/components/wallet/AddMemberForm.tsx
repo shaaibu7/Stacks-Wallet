@@ -212,15 +212,20 @@ export function AddMemberForm({
 
                     {transactionState.status === 'error' && (
                         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                            <div className="flex items-center">
-                                <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <div className="flex items-start">
+                                <svg className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <p className="text-red-800 font-medium">Failed to add member</p>
+                                <div>
+                                    <p className="text-red-800 font-medium">Failed to add member</p>
+                                    <p className="text-red-700 text-sm mt-1">
+                                        {transactionState.error}
+                                    </p>
+                                    <p className="text-red-600 text-xs mt-2">
+                                        If this problem persists, please check your wallet connection and try again.
+                                    </p>
+                                </div>
                             </div>
-                            <p className="text-red-700 text-sm mt-1">
-                                {transactionState.error}
-                            </p>
                         </div>
                     )}
 
