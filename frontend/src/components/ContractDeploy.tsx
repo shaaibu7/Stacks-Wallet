@@ -131,6 +131,25 @@ export function ContractDeploy({ network }: ContractDeployProps) {
 
       <div style={{ marginTop: "1rem" }}>
         <label>
+          <strong>Contract Templates (optional):</strong>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => handleTemplateSelect(e.target.value)}
+            disabled={isDeploying}
+            style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+          >
+            <option value="">Select a template...</option>
+            {contractTemplates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name} - {template.description}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div style={{ marginTop: "1rem" }}>
+        <label>
           <strong>Contract Source Code (Clarity):</strong>
           <textarea
             value={contractSource}
