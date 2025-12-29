@@ -17,7 +17,12 @@ import { useContractDeploy } from "../hooks/useContractDeploy";
 import { useWallet } from "./WalletConnect";
 import { ClarityVersion } from "@stacks/transactions";
 import type { NetworkKey } from "../types/wallet";
-import { validateContractName, validateContractSource } from "../utils/contract.utils";
+import { 
+  validateContractName, 
+  validateContractSource,
+  getRecommendedFee,
+  formatFee 
+} from "../utils/contract.utils";
 
 interface ContractDeployProps {
   network: NetworkKey;
@@ -29,9 +34,14 @@ export function ContractDeploy({ network }: ContractDeployProps) {
   
   const [contractName, setContractName] = useState("");
   const [contractSource, setContractSource] = useState("");
-  const [fee, setFee] = useState("150000");
+  const [fee, setFee] = useState(() => getRecommendedFee(network).toString());
   const [clarityVersion, setClarityVersion] = useState<ClarityVersion>(ClarityVersion.Clarity4);
   const [nameError, setNameError] = useState<string | null>(null);
+
+  // Update fee when network changes
+  const updateFeeForNetwork = useCallback(() => {
+    setFee(getRecommendedFee(network).toString());
+  }, [network]);
 
   // Validate contract name on change
   const handleNameChange = useCallback((value: string) => {
