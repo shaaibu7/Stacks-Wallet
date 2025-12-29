@@ -87,22 +87,40 @@ export function useContractDeploy(): UseContractDeployReturn {
         // We'll sign this with the wallet adapter
       });
 
-      // For AppKit, we need to use the adapter's transaction signing
-      // The adapter will handle the wallet interaction
+      // Get the Stacks adapter from AppKit to sign the transaction
+      // Note: The exact API may vary based on AppKit version
+      // This will prompt the user to approve the transaction in their wallet
       const stacksAdapter = appKit.getAdapter("stacks");
       if (!stacksAdapter) {
-        throw new Error("Stacks adapter not available. Please connect your wallet.");
+        throw new Error("Stacks adapter not available. Please connect your wallet first.");
       }
 
-      // Use AppKit's transaction signing through the adapter
-      // This will prompt the user to sign in their wallet
-      const signedTx = await stacksAdapter.signTransaction({
-        transaction,
-        network,
-      });
+      // Sign the transaction using the wallet adapter
+      // The adapter handles the wallet interaction and user approval
+      let signedTx;
+      try {
+        // Try the signTransaction method if available
+        if (typeof stacksAdapter.signTransaction === "function") {
+          signedTx = await stacksAdapter.signTransaction({
+            transaction,
+            network,
+          });
+        } else {
+          // Fallback: if adapter doesn't expose signTransaction directly,
+          // we may need to use a different approach
+          throw new Error("Transaction signing not available through adapter. Please check AppKit version.");
+        }
+      } catch (signError: any) {
+        const errorMsg = extractErrorMessage(signError);
+        if (isUserRejection(signError)) {
+          // User cancelled - don't show error
+          return null;
+        }
+        throw new Error(`Transaction signing failed: ${errorMsg}`);
+      }
 
       if (!signedTx) {
-        throw new Error("Transaction signing was cancelled or failed");
+        throw new Error("Transaction signing was cancelled or returned no result");
       }
 
       // Broadcast the signed transaction
