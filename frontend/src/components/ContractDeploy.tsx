@@ -142,13 +142,27 @@ export function ContractDeploy({ network }: ContractDeployProps) {
       <div style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
         <label>
           <strong>Fee (micro-STX):</strong>
-          <input
-            type="number"
-            value={fee}
-            onChange={(e) => setFee(e.target.value)}
-            disabled={isDeploying}
-            style={{ width: "150px", marginTop: "0.5rem", padding: "0.5rem" }}
-          />
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem" }}>
+            <input
+              type="number"
+              value={fee}
+              onChange={(e) => setFee(e.target.value)}
+              disabled={isDeploying}
+              style={{ width: "150px", padding: "0.5rem" }}
+            />
+            <span style={{ fontSize: "0.875rem", color: "#666" }}>
+              ({formatFee(Number.parseInt(fee) || 0)} STX)
+            </span>
+            <button
+              type="button"
+              onClick={updateFeeForNetwork}
+              disabled={isDeploying}
+              style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+              title="Reset to recommended fee"
+            >
+              Reset
+            </button>
+          </div>
         </label>
 
         <label>
