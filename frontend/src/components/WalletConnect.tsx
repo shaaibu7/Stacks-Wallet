@@ -11,6 +11,7 @@ import { validateProjectId } from "../config/wallet.config";
 import { createWalletError, extractErrorMessage, isUserRejection } from "../utils/wallet.utils";
 import { appKit } from "../lib/appkit.instance";
 import { useWalletConnection } from "../hooks/useWalletConnection";
+import { saveLastConnectedAddress, getLastConnectedAddress } from "../lib/wallet.storage";
 
 // Validate project ID on module load
 if (typeof window !== "undefined") {
@@ -54,6 +55,14 @@ export function useWallet(): UseWalletReturn {
       const initialAddress = initialState.accounts?.[0]?.address || null;
       if (isMountedRef.current && initialAddress) {
         setAddress(initialAddress);
+        saveLastConnectedAddress(initialAddress);
+      } else {
+        // Try to restore from storage if no active connection
+        const lastAddress = getLastConnectedAddress();
+        if (lastAddress && isMountedRef.current) {
+          // Address stored but not connected - will be handled by AppKit
+          console.log("Previous wallet address found in storage:", lastAddress);
+        }
       }
     } catch (err) {
       console.error("Failed to get initial wallet state:", err);
@@ -70,6 +79,11 @@ export function useWallet(): UseWalletReturn {
 
         // Update address
         setAddress(accountAddress);
+
+        // Save connected address to storage
+        if (accountAddress) {
+          saveLastConnectedAddress(accountAddress);
+        }
 
         // Reset connecting state when connection status changes
         if (wasConnected !== isNowConnected) {

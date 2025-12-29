@@ -46,3 +46,5 @@ export interface WalletSession {
   accounts: WalletAccount[];
 }
 
+export type NetworkKey = "mainnet" | "testnet";
+
