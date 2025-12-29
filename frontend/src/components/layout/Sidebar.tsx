@@ -12,6 +12,9 @@ export default function Sidebar() {
                 <Link to="/dashboard" className="px-4 py-2 hover:bg-gray-100 rounded-md text-sm font-medium">
                     Dashboard
                 </Link>
+                <Link to="/allowances" className="px-4 py-2 hover:bg-gray-100 rounded-md text-sm font-medium">
+                    Allowances
+                </Link>
             </div>
         </div>
     )
