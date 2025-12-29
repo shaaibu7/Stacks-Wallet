@@ -17,6 +17,7 @@ import { useContractDeploy } from "../hooks/useContractDeploy";
 import { useWallet } from "./WalletConnect";
 import { ClarityVersion } from "@stacks/transactions";
 import type { NetworkKey } from "../types/wallet";
+import { validateContractName, validateContractSource } from "../utils/contract.utils";
 
 interface ContractDeployProps {
   network: NetworkKey;
@@ -32,16 +33,21 @@ export function ContractDeploy({ network }: ContractDeployProps) {
   const [clarityVersion, setClarityVersion] = useState<ClarityVersion>(ClarityVersion.Clarity4);
 
   const handleDeploy = useCallback(async () => {
-    if (!contractName.trim()) {
-      alert("Please enter a contract name");
+    // Validate contract name
+    const nameValidation = validateContractName(contractName);
+    if (!nameValidation.valid) {
+      alert(nameValidation.error);
       return;
     }
 
-    if (!contractSource.trim()) {
-      alert("Please enter contract source code");
+    // Validate contract source
+    const sourceValidation = validateContractSource(contractSource);
+    if (!sourceValidation.valid) {
+      alert(sourceValidation.error);
       return;
     }
 
+    // Validate fee
     const feeNum = Number.parseInt(fee, 10);
     if (isNaN(feeNum) || feeNum <= 0) {
       alert("Please enter a valid fee (in micro-STX)");
