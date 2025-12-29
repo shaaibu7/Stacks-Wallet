@@ -1,6 +1,20 @@
 /**
  * Hook for deploying smart contracts using Reown AppKit
+ * 
  * Allows users to deploy Clarity contracts directly from the frontend
+ * without exposing private keys. Uses the connected wallet for transaction signing.
+ * 
+ * @example
+ * ```tsx
+ * const { deploy, isDeploying, error, lastTxId } = useContractDeploy();
+ * 
+ * await deploy({
+ *   contractName: "my-contract",
+ *   contractSource: "(define-public (hello) (ok \"world\"))",
+ *   network: "testnet",
+ *   fee: 150000
+ * });
+ * ```
  */
 
 import { useCallback, useState } from "react";
