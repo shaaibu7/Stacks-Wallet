@@ -1,0 +1,180 @@
+/**
+ * Contract Deployment Component
+ * UI for deploying Clarity smart contracts using connected wallet
+ */
+
+import { useState, useCallback } from "react";
+import { useContractDeploy } from "../hooks/useContractDeploy";
+import { useWallet } from "./WalletConnect";
+import { ClarityVersion } from "@stacks/transactions";
+import type { NetworkKey } from "../types/wallet";
+
+interface ContractDeployProps {
+  network: NetworkKey;
+}
+
+export function ContractDeploy({ network }: ContractDeployProps) {
+  const { isConnected, address } = useWallet();
+  const { deploy, isDeploying, error, clearError, lastTxId } = useContractDeploy();
+  
+  const [contractName, setContractName] = useState("");
+  const [contractSource, setContractSource] = useState("");
+  const [fee, setFee] = useState("150000");
+  const [clarityVersion, setClarityVersion] = useState<ClarityVersion>(ClarityVersion.Clarity4);
+
+  const handleDeploy = useCallback(async () => {
+    if (!contractName.trim()) {
+      alert("Please enter a contract name");
+      return;
+    }
+
+    if (!contractSource.trim()) {
+      alert("Please enter contract source code");
+      return;
+    }
+
+    const feeNum = Number.parseInt(fee, 10);
+    if (isNaN(feeNum) || feeNum <= 0) {
+      alert("Please enter a valid fee (in micro-STX)");
+      return;
+    }
+
+    const txId = await deploy({
+      contractName: contractName.trim(),
+      contractSource: contractSource.trim(),
+      network,
+      fee: feeNum,
+      clarityVersion,
+    });
+
+    if (txId) {
+      // Success - form will show txId
+      console.log("Contract deployed:", txId);
+    }
+  }, [contractName, contractSource, fee, clarityVersion, network, deploy]);
+
+  if (!isConnected) {
+    return (
+      <div className="section">
+        <h2>Deploy Smart Contract</h2>
+        <p>Please connect your wallet to deploy contracts.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="section">
+      <h2>Deploy Smart Contract</h2>
+      <p>Deploy Clarity contracts directly from your connected wallet.</p>
+      
+      <div style={{ marginTop: "1rem" }}>
+        <label>
+          <strong>Contract Name:</strong>
+          <input
+            type="text"
+            value={contractName}
+            onChange={(e) => setContractName(e.target.value)}
+            placeholder="my-contract"
+            disabled={isDeploying}
+            style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+          />
+        </label>
+      </div>
+
+      <div style={{ marginTop: "1rem" }}>
+        <label>
+          <strong>Contract Source Code (Clarity):</strong>
+          <textarea
+            value={contractSource}
+            onChange={(e) => setContractSource(e.target.value)}
+            placeholder="(define-public (hello-world)&#10;  (ok \"Hello, World!\"))"
+            disabled={isDeploying}
+            rows={15}
+            style={{ 
+              width: "100%", 
+              marginTop: "0.5rem", 
+              padding: "0.5rem",
+              fontFamily: "monospace",
+              fontSize: "0.875rem"
+            }}
+          />
+        </label>
+      </div>
+
+      <div style={{ marginTop: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <label>
+          <strong>Fee (micro-STX):</strong>
+          <input
+            type="number"
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+            disabled={isDeploying}
+            style={{ width: "150px", marginTop: "0.5rem", padding: "0.5rem" }}
+          />
+        </label>
+
+        <label>
+          <strong>Clarity Version:</strong>
+          <select
+            value={clarityVersion}
+            onChange={(e) => setClarityVersion(Number(e.target.value) as ClarityVersion)}
+            disabled={isDeploying}
+            style={{ marginTop: "0.5rem", padding: "0.5rem" }}
+          >
+            <option value={ClarityVersion.Clarity1}>Clarity 1</option>
+            <option value={ClarityVersion.Clarity2}>Clarity 2</option>
+            <option value={ClarityVersion.Clarity3}>Clarity 3</option>
+            <option value={ClarityVersion.Clarity4}>Clarity 4</option>
+          </select>
+        </label>
+      </div>
+
+      {error && (
+        <div className="error" style={{ marginTop: "1rem" }}>
+          <strong>Error:</strong> {error.message}
+          <button onClick={clearError} style={{ marginLeft: "1rem" }}>Dismiss</button>
+        </div>
+      )}
+
+      {lastTxId && (
+        <div style={{ 
+          marginTop: "1rem", 
+          padding: "1rem", 
+          backgroundColor: "#e8f5e9", 
+          borderRadius: "4px" 
+        }}>
+          <strong>✅ Contract deployed successfully!</strong>
+          <p>Transaction ID: <code>{lastTxId}</code></p>
+          <p>
+            <a 
+              href={`https://explorer.hiro.so/txid/${lastTxId}?chain=${network}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View on Explorer →
+            </a>
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={handleDeploy}
+        disabled={isDeploying || !contractName.trim() || !contractSource.trim()}
+        style={{ 
+          marginTop: "1rem", 
+          padding: "0.75rem 1.5rem",
+          fontSize: "1rem",
+          cursor: isDeploying ? "wait" : "pointer"
+        }}
+      >
+        {isDeploying ? "Deploying..." : "Deploy Contract"}
+      </button>
+
+      <div style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
+        <p><strong>Deploying from:</strong> {address}</p>
+        <p><strong>Network:</strong> {network === "mainnet" ? "Mainnet" : "Testnet"}</p>
+      </div>
+    </div>
+  );
+}
+
