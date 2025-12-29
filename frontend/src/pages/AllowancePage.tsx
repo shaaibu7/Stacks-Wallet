@@ -1,9 +1,31 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useWallet } from '../components/WalletConnect';
 import { formatAddress } from '../utils/wallet.utils';
+import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from '@stacks/network';
+
+type NetworkKey = "mainnet" | "testnet";
+
+const DEFAULT_NETWORK: NetworkKey =
+  (import.meta.env.VITE_STACKS_NETWORK as NetworkKey) === "mainnet" ? "mainnet" : "testnet";
+const DEFAULT_CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
+const DEFAULT_CONTRACT_NAME = import.meta.env.VITE_CONTRACT_NAME ?? "token-contract";
+
+function buildNetwork(network: NetworkKey) {
+  const overrideUrl = import.meta.env.VITE_STACKS_API_URL as string | undefined;
+  const base = network === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
+  return createNetwork({
+    network: base,
+    client: { baseUrl: overrideUrl ?? base.client.baseUrl },
+  });
+}
 
 const AllowancePage: React.FC = () => {
   const { address, isConnected, isConnecting, error: walletError, connect, disconnect, clearError } = useWallet();
+  const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
+  const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
+  const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
+
+  const stacksNetwork = useMemo(() => buildNetwork(network), [network]);
 
   return (
     <div className="page">
@@ -78,6 +100,41 @@ const AllowancePage: React.FC = () => {
             Please connect your wallet to manage token allowances. You need a connected wallet to 
             approve allowances and check existing permissions.
           </p>
+        </section>
+      )}
+
+      {isConnected && (
+        <section className="panel">
+          <h2>Contract Configuration</h2>
+          <div className="grid three">
+            <label className="field">
+              <span>Network</span>
+              <select value={network} onChange={(e) => setNetwork(e.target.value as NetworkKey)}>
+                <option value="testnet">Testnet</option>
+                <option value="mainnet">Mainnet</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Contract Address</span>
+              <input
+                value={contractAddress}
+                onChange={(e) => setContractAddress(e.target.value)}
+                placeholder="ST... contract deployer address"
+              />
+            </label>
+            <label className="field">
+              <span>Contract Name</span>
+              <input
+                value={contractName}
+                onChange={(e) => setContractName(e.target.value)}
+                placeholder="token-contract"
+              />
+            </label>
+          </div>
+          <div className="stat" style={{ marginTop: '1rem' }}>
+            <p className="label">Network API</p>
+            <p className="value small">{stacksNetwork.client.baseUrl}</p>
+          </div>
         </section>
       )}
     </div>
