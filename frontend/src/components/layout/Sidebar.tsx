@@ -15,6 +15,9 @@ export default function Sidebar() {
                 <Link to="/allowances" className="px-4 py-2 hover:bg-gray-100 rounded-md text-sm font-medium">
                     Allowances
                 </Link>
+                <Link to="/transactions" className="px-4 py-2 hover:bg-gray-100 rounded-md text-sm font-medium">
+                    Transactions
+                </Link>
             </div>
         </div>
     )
