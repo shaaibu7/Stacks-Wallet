@@ -32,6 +32,15 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
   // Pause state
   const [mintingPaused, setMintingPaused] = useState<boolean | null>(null);
 
+  // Approve state
+  const [approveSpender, setApproveSpender] = useState("");
+  const [approveAmount, setApproveAmount] = useState("");
+
+  // Transfer-from state
+  const [transferFromOwner, setTransferFromOwner] = useState("");
+  const [transferFromAmount, setTransferFromAmount] = useState("");
+  const [transferFromRecipient, setTransferFromRecipient] = useState("");
+
   const handleMint = useCallback(async () => {
     if (!mintAmount || !mintRecipient) {
       alert("Please enter amount and recipient");
@@ -87,6 +96,52 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
       network,
     });
   }, [contractAddress, contractName, network, call]);
+
+  const handleApprove = useCallback(async () => {
+    if (!approveSpender || !approveAmount) {
+      alert("Please enter spender and amount");
+      return;
+    }
+
+    const amount = Number.parseInt(approveAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    await call({
+      contractAddress,
+      contractName,
+      functionName: "approve",
+      functionArgs: [standardPrincipalCV(approveSpender), uintCV(amount)],
+      network,
+    });
+  }, [approveSpender, approveAmount, contractAddress, contractName, network, call]);
+
+  const handleTransferFrom = useCallback(async () => {
+    if (!transferFromOwner || !transferFromAmount || !transferFromRecipient) {
+      alert("Please enter owner, amount, and recipient");
+      return;
+    }
+
+    const amount = Number.parseInt(transferFromAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    await call({
+      contractAddress,
+      contractName,
+      functionName: "transfer-from",
+      functionArgs: [
+        standardPrincipalCV(transferFromOwner),
+        standardPrincipalCV(transferFromRecipient),
+        uintCV(amount),
+      ],
+      network,
+    });
+  }, [transferFromOwner, transferFromAmount, transferFromRecipient, contractAddress, contractName, network, call]);
 
   if (!isConnected) {
     return (
