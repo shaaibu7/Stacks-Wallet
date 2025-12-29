@@ -1,6 +1,15 @@
 /**
  * Contract Deployment Component
- * UI for deploying Clarity smart contracts using connected wallet
+ * 
+ * Provides a user-friendly UI for deploying Clarity smart contracts
+ * directly from the frontend using the connected wallet via Reown AppKit.
+ * 
+ * Features:
+ * - Contract name and source code input
+ * - Configurable transaction fee
+ * - Clarity version selection
+ * - Real-time deployment status
+ * - Transaction ID display with explorer links
  */
 
 import { useState, useCallback } from "react";
