@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './allowance.css';
 
 interface AllowanceCheckerProps {
   onCheck: (owner: string, spender: string) => Promise<bigint>;

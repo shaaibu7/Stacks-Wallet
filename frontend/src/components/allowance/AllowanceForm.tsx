@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AllowanceFormData } from '../../types/allowance';
+import './allowance.css';
 
 interface AllowanceFormProps {
   onSubmit: (data: AllowanceFormData) => void;

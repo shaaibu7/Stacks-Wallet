@@ -1,5 +1,6 @@
 import React from 'react';
 import { Allowance } from '../../types/allowance';
+import './allowance.css';
 
 interface AllowanceListProps {
   allowances: Allowance[];
