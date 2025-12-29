@@ -87,23 +87,23 @@ export function useContractDeploy(): UseContractDeployReturn {
         // We'll sign this with the wallet adapter
       });
 
-      // Get the Stacks adapter and signer from AppKit
+      // For AppKit, we need to use the adapter's transaction signing
+      // The adapter will handle the wallet interaction
       const stacksAdapter = appKit.getAdapter("stacks");
       if (!stacksAdapter) {
         throw new Error("Stacks adapter not available. Please connect your wallet.");
       }
 
-      // Get the signer from the adapter
-      const signer = await stacksAdapter.getSigner();
-      if (!signer) {
-        throw new Error("Unable to get signer from wallet. Please reconnect.");
-      }
-
-      // Sign the transaction using the wallet signer
-      const signedTx = await signTransaction({
+      // Use AppKit's transaction signing through the adapter
+      // This will prompt the user to sign in their wallet
+      const signedTx = await stacksAdapter.signTransaction({
         transaction,
-        privateKey: signer.privateKey,
+        network,
       });
+
+      if (!signedTx) {
+        throw new Error("Transaction signing was cancelled or failed");
+      }
 
       // Broadcast the signed transaction
       const broadcastResponse = await broadcastTransaction({
