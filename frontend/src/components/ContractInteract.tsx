@@ -53,6 +53,41 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
     });
   }, [mintAmount, mintRecipient, contractAddress, contractName, network, call]);
 
+  const handleTransfer = useCallback(async () => {
+    if (!transferAmount || !transferRecipient || !address) {
+      alert("Please enter amount, recipient, and ensure wallet is connected");
+      return;
+    }
+
+    const amount = Number.parseInt(transferAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    await call({
+      contractAddress,
+      contractName,
+      functionName: "transfer",
+      functionArgs: [
+        uintCV(amount),
+        standardPrincipalCV(address),
+        standardPrincipalCV(transferRecipient),
+      ],
+      network,
+    });
+  }, [transferAmount, transferRecipient, address, contractAddress, contractName, network, call]);
+
+  const handleSetMintingPaused = useCallback(async (paused: boolean) => {
+    await call({
+      contractAddress,
+      contractName,
+      functionName: "set-minting-paused",
+      functionArgs: [boolCV(paused)],
+      network,
+    });
+  }, [contractAddress, contractName, network, call]);
+
   if (!isConnected) {
     return (
       <div className="section">
