@@ -124,14 +124,26 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
 
           <label>
             <strong>Recipient:</strong>
-            <input
-              type="text"
-              value={mintRecipient}
-              onChange={(e) => setMintRecipient(e.target.value)}
-              placeholder={address || "ST..."}
-              disabled={isCalling}
-              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
-            />
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <input
+                type="text"
+                value={mintRecipient}
+                onChange={(e) => setMintRecipient(e.target.value)}
+                placeholder={address || "ST..."}
+                disabled={isCalling}
+                style={{ flex: 1, padding: "0.5rem" }}
+              />
+              {address && (
+                <button
+                  type="button"
+                  onClick={() => setMintRecipient(address)}
+                  disabled={isCalling}
+                  style={{ padding: "0.5rem 1rem", whiteSpace: "nowrap" }}
+                >
+                  Use Wallet
+                </button>
+              )}
+            </div>
           </label>
 
           <button
@@ -140,6 +152,73 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
             style={{ marginTop: "0.5rem", padding: "0.75rem 1.5rem" }}
           >
             {isCalling ? "Minting..." : "Mint Tokens"}
+          </button>
+        </div>
+      </div>
+
+      {/* Transfer Section */}
+      <div style={{ marginTop: "1.5rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "4px" }}>
+        <h3>Transfer Tokens</h3>
+        <p style={{ fontSize: "0.875rem", color: "#666" }}>
+          Transfer tokens from your wallet to another address
+        </p>
+
+        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <label>
+            <strong>Amount (micro-units):</strong>
+            <input
+              type="number"
+              value={transferAmount}
+              onChange={(e) => setTransferAmount(e.target.value)}
+              placeholder="1000000"
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <label>
+            <strong>Recipient:</strong>
+            <input
+              type="text"
+              value={transferRecipient}
+              onChange={(e) => setTransferRecipient(e.target.value)}
+              placeholder="ST..."
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <button
+            onClick={handleTransfer}
+            disabled={isCalling || !transferAmount || !transferRecipient || !address}
+            style={{ marginTop: "0.5rem", padding: "0.75rem 1.5rem" }}
+          >
+            {isCalling ? "Transferring..." : "Transfer Tokens"}
+          </button>
+        </div>
+      </div>
+
+      {/* Admin Section */}
+      <div style={{ marginTop: "1.5rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "4px" }}>
+        <h3>Admin Functions</h3>
+        <p style={{ fontSize: "0.875rem", color: "#666" }}>
+          Control minting (contract owner only)
+        </p>
+
+        <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={() => handleSetMintingPaused(true)}
+            disabled={isCalling}
+            style={{ padding: "0.75rem 1.5rem" }}
+          >
+            {isCalling ? "Pausing..." : "Pause Minting"}
+          </button>
+          <button
+            onClick={() => handleSetMintingPaused(false)}
+            disabled={isCalling}
+            style={{ padding: "0.75rem 1.5rem" }}
+          >
+            {isCalling ? "Unpausing..." : "Unpause Minting"}
           </button>
         </div>
       </div>
