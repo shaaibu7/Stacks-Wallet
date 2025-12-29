@@ -4,6 +4,7 @@ import { cvToJSON, fetchCallReadOnlyFunction, standardPrincipalCV } from "@stack
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import { useWallet } from "./components/WalletConnect";
 import { formatAddress } from "./utils/wallet.utils";
+import { ContractDeploy } from "./components/ContractDeploy";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -365,6 +366,10 @@ function App() {
           )}
         </section>
       )}
+
+      <section className="panel">
+        <ContractDeploy network={network} />
+      </section>
     </div>
   );
 }
