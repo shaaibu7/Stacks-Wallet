@@ -71,3 +71,17 @@ export function parseFeeToMicroStx(feeStx: string): number | null {
   return Math.floor(parsed * 1_000_000);
 }
 
+/**
+ * Gets recommended fee based on network
+ */
+export function getRecommendedFee(network: "mainnet" | "testnet"): number {
+  return network === "mainnet" ? 150000 : 100000;
+}
+
+/**
+ * Estimates contract deployment cost in STX
+ */
+export function estimateDeploymentCost(feeMicroStx: number): string {
+  return formatFee(feeMicroStx);
+}
+
