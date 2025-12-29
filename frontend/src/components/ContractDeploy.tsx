@@ -222,9 +222,19 @@ export function ContractDeploy({ network }: ContractDeployProps) {
         {isDeploying ? "Deploying..." : "Deploy Contract"}
       </button>
 
-      <div style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#666" }}>
+      <div style={{ 
+        marginTop: "1rem", 
+        padding: "1rem", 
+        backgroundColor: "#f5f5f5", 
+        borderRadius: "4px",
+        fontSize: "0.875rem" 
+      }}>
         <p><strong>Deploying from:</strong> {address}</p>
         <p><strong>Network:</strong> {network === "mainnet" ? "Mainnet" : "Testnet"}</p>
+        <p><strong>Estimated fee:</strong> {formatFee(Number.parseInt(fee) || 0)} STX</p>
+        <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#999" }}>
+          Make sure you have sufficient STX balance to cover the deployment fee.
+        </p>
       </div>
     </div>
   );
