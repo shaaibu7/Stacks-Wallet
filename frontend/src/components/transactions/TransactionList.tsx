@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Transaction } from '../../types/transaction';
+import TransactionDetail from './TransactionDetail';
 import './transactions.css';
 
 interface TransactionListProps {
@@ -15,6 +16,8 @@ const TransactionList: React.FC<TransactionListProps> = ({
   onLoadMore,
   hasMore = false,
 }) => {
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const formatAddress = (address: string) => {
     if (!address || address.length <= 10) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -47,6 +50,16 @@ const TransactionList: React.FC<TransactionListProps> = ({
     }
   };
 
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedTransaction(null);
+  };
+
   if (loading && transactions.length === 0) {
     return (
       <div className="transaction-list">
@@ -70,7 +83,11 @@ const TransactionList: React.FC<TransactionListProps> = ({
       <h3>Transaction History</h3>
       <div className="transactions-container">
         {transactions.map((tx) => (
-          <div key={tx.txid} className="transaction-item">
+          <div 
+            key={tx.txid} 
+            className="transaction-item"
+            onClick={() => handleTransactionClick(tx)}
+          >
             <div className="transaction-header">
               <div className="transaction-type">
                 <span className="type-icon">{getTypeIcon(tx.type)}</span>
@@ -131,6 +148,12 @@ const TransactionList: React.FC<TransactionListProps> = ({
           </button>
         </div>
       )}
+
+      <TransactionDetail
+        transaction={selectedTransaction}
+        isOpen={isDetailOpen}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 };
