@@ -6,6 +6,7 @@ import { useWallet } from "./components/WalletConnect";
 import { formatAddress } from "./utils/wallet.utils";
 import { ContractDeploy } from "./components/ContractDeploy";
 import { ContractInteract } from "./components/ContractInteract";
+import { TransactionHistory } from "./components/TransactionHistory";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -381,6 +382,10 @@ function App() {
           />
         </section>
       )}
+
+      <section className="panel">
+        <TransactionHistory network={network} />
+      </section>
     </div>
   );
 }

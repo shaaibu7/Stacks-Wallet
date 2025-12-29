@@ -32,6 +32,15 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
   // Pause state
   const [mintingPaused, setMintingPaused] = useState<boolean | null>(null);
 
+  // Approve state
+  const [approveSpender, setApproveSpender] = useState("");
+  const [approveAmount, setApproveAmount] = useState("");
+
+  // Transfer-from state
+  const [transferFromOwner, setTransferFromOwner] = useState("");
+  const [transferFromAmount, setTransferFromAmount] = useState("");
+  const [transferFromRecipient, setTransferFromRecipient] = useState("");
+
   const handleMint = useCallback(async () => {
     if (!mintAmount || !mintRecipient) {
       alert("Please enter amount and recipient");
@@ -87,6 +96,52 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
       network,
     });
   }, [contractAddress, contractName, network, call]);
+
+  const handleApprove = useCallback(async () => {
+    if (!approveSpender || !approveAmount) {
+      alert("Please enter spender and amount");
+      return;
+    }
+
+    const amount = Number.parseInt(approveAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    await call({
+      contractAddress,
+      contractName,
+      functionName: "approve",
+      functionArgs: [standardPrincipalCV(approveSpender), uintCV(amount)],
+      network,
+    });
+  }, [approveSpender, approveAmount, contractAddress, contractName, network, call]);
+
+  const handleTransferFrom = useCallback(async () => {
+    if (!transferFromOwner || !transferFromAmount || !transferFromRecipient) {
+      alert("Please enter owner, amount, and recipient");
+      return;
+    }
+
+    const amount = Number.parseInt(transferFromAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    await call({
+      contractAddress,
+      contractName,
+      functionName: "transfer-from",
+      functionArgs: [
+        standardPrincipalCV(transferFromOwner),
+        standardPrincipalCV(transferFromRecipient),
+        uintCV(amount),
+      ],
+      network,
+    });
+  }, [transferFromOwner, transferFromAmount, transferFromRecipient, contractAddress, contractName, network, call]);
 
   if (!isConnected) {
     return (
@@ -194,6 +249,102 @@ export function ContractInteract({ contractAddress, contractName, network }: Con
             style={{ marginTop: "0.5rem", padding: "0.75rem 1.5rem" }}
           >
             {isCalling ? "Transferring..." : "Transfer Tokens"}
+          </button>
+        </div>
+      </div>
+
+      {/* Approve Section */}
+      <div style={{ marginTop: "1.5rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "4px" }}>
+        <h3>Approve Spender</h3>
+        <p style={{ fontSize: "0.875rem", color: "#666" }}>
+          Allow another address to spend your tokens
+        </p>
+
+        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <label>
+            <strong>Spender Address:</strong>
+            <input
+              type="text"
+              value={approveSpender}
+              onChange={(e) => setApproveSpender(e.target.value)}
+              placeholder="ST..."
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <label>
+            <strong>Amount (micro-units):</strong>
+            <input
+              type="number"
+              value={approveAmount}
+              onChange={(e) => setApproveAmount(e.target.value)}
+              placeholder="1000000"
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <button
+            onClick={handleApprove}
+            disabled={isCalling || !approveSpender || !approveAmount}
+            style={{ marginTop: "0.5rem", padding: "0.75rem 1.5rem" }}
+          >
+            {isCalling ? "Approving..." : "Approve"}
+          </button>
+        </div>
+      </div>
+
+      {/* Transfer From Section */}
+      <div style={{ marginTop: "1.5rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "4px" }}>
+        <h3>Transfer From</h3>
+        <p style={{ fontSize: "0.875rem", color: "#666" }}>
+          Transfer tokens on behalf of another address (requires approval)
+        </p>
+
+        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <label>
+            <strong>Owner Address:</strong>
+            <input
+              type="text"
+              value={transferFromOwner}
+              onChange={(e) => setTransferFromOwner(e.target.value)}
+              placeholder="ST..."
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <label>
+            <strong>Amount (micro-units):</strong>
+            <input
+              type="number"
+              value={transferFromAmount}
+              onChange={(e) => setTransferFromAmount(e.target.value)}
+              placeholder="1000000"
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <label>
+            <strong>Recipient:</strong>
+            <input
+              type="text"
+              value={transferFromRecipient}
+              onChange={(e) => setTransferFromRecipient(e.target.value)}
+              placeholder="ST..."
+              disabled={isCalling}
+              style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+            />
+          </label>
+
+          <button
+            onClick={handleTransferFrom}
+            disabled={isCalling || !transferFromOwner || !transferFromAmount || !transferFromRecipient}
+            style={{ marginTop: "0.5rem", padding: "0.75rem 1.5rem" }}
+          >
+            {isCalling ? "Transferring..." : "Transfer From"}
           </button>
         </div>
       </div>

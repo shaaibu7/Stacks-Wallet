@@ -23,6 +23,7 @@ import {
   getRecommendedFee,
   formatFee 
 } from "../utils/contract.utils";
+import { contractTemplates, getTemplate } from "../data/contractTemplates";
 
 interface ContractDeployProps {
   network: NetworkKey;
@@ -37,6 +38,15 @@ export function ContractDeploy({ network }: ContractDeployProps) {
   const [fee, setFee] = useState(() => getRecommendedFee(network).toString());
   const [clarityVersion, setClarityVersion] = useState<ClarityVersion>(ClarityVersion.Clarity4);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+
+  const handleTemplateSelect = useCallback((templateId: string) => {
+    const template = getTemplate(templateId);
+    if (template) {
+      setContractSource(template.source);
+      setSelectedTemplate(templateId);
+    }
+  }, []);
 
   // Update fee when network changes
   const updateFeeForNetwork = useCallback(() => {
@@ -116,6 +126,25 @@ export function ContractDeploy({ network }: ContractDeployProps) {
               {nameError}
             </div>
           )}
+        </label>
+      </div>
+
+      <div style={{ marginTop: "1rem" }}>
+        <label>
+          <strong>Contract Templates (optional):</strong>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => handleTemplateSelect(e.target.value)}
+            disabled={isDeploying}
+            style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
+          >
+            <option value="">Select a template...</option>
+            {contractTemplates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name} - {template.description}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

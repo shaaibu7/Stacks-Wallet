@@ -192,35 +192,203 @@ All scripts live in `contracts/package.json`:
 
 ## Frontend (React + Vite)
 
-A lightweight UI is available under `frontend/` to query your deployed SIP‑010 token (read-only: name, total supply, balances).
+A full-featured UI is available under `frontend/` that integrates **Reown AppKit (WalletConnect)** for secure wallet connections and transaction signing. The frontend supports:
 
-Setup and run:
+- **Wallet Connection** via Reown AppKit (WalletConnect)
+- **Contract Deployment** directly from the browser using your connected wallet
+- **Contract Interactions** (mint, transfer, approve, etc.) with wallet signing
+- **Read-only Queries** (token metadata, balances, supply)
+- **Transaction History** tracking
+- **Contract Templates** for quick deployment
+
+### Setup and Installation
 
 ```bash
 cd frontend
-npm install          # already done once after scaffolding
-npm run dev          # start Vite dev server
+npm install
+npm run dev          # start Vite dev server (usually http://localhost:5173)
 ```
 
-Configure via environment variables (copy `frontend/env.example` to `frontend/.env`):
+### Environment Configuration
 
-- `VITE_STACKS_NETWORK` – `testnet` (default) or `mainnet`
-- `VITE_STACKS_API_URL` – optional Hiro API URL override (defaults to testnet/mainnet)
-- `VITE_CONTRACT_ADDRESS` – your deployed contract address (e.g., deployer STx…)
-- `VITE_CONTRACT_NAME` – deployed contract name (e.g., `token-contract` or timestamped variant)
-- `VITE_REOWN_PROJECT_ID` – Reown AppKit project ID (get from https://cloud.reown.com)
+Copy `frontend/env.example` to `frontend/.env` and configure:
 
-The UI lets you:
-- **Connect wallet** using Reown AppKit (WalletConnect) for Stacks wallets
-- Load token metadata (`get-name`) and total supply (`get-total-supply`).
-- Query balances (`get-balance`) for a provided principal.
+```bash
+# Network configuration
+VITE_STACKS_NETWORK=testnet          # or "mainnet"
+VITE_STACKS_API_URL=                 # optional API URL override
 
-**Wallet Connection:**
-- Uses Reown AppKit (formerly WalletConnect) for secure wallet connections
-- Supports Stacks Mainnet and Testnet networks
-- Configure `VITE_REOWN_PROJECT_ID` in `frontend/.env` (get from https://cloud.reown.com)
+# Contract configuration (for read-only queries)
+VITE_CONTRACT_ADDRESS=ST...          # your deployed contract address
+VITE_CONTRACT_NAME=token-contract    # your deployed contract name
 
-No private keys are required for read-only calls; wallet connection enables future transaction signing.
+# Reown AppKit (WalletConnect) - REQUIRED for wallet features
+VITE_REOWN_PROJECT_ID=your-project-id-here
+```
+
+**Getting a Reown Project ID:**
+1. Visit [https://cloud.reown.com](https://cloud.reown.com)
+2. Sign up or log in
+3. Create a new project
+4. Copy your Project ID to `VITE_REOWN_PROJECT_ID` in `.env`
+
+### WalletConnect / Reown AppKit Integration
+
+The frontend uses **Reown AppKit** (formerly WalletConnect) to enable secure wallet connections without exposing private keys.
+
+#### Features Enabled by WalletConnect:
+
+1. **Wallet Connection**
+   - Connect to Stacks wallets (Hiro Wallet, Xverse, etc.)
+   - Supports both Mainnet and Testnet
+   - Connection persists across page refreshes
+   - Secure connection via WalletConnect protocol
+
+2. **Contract Deployment**
+   - Deploy Clarity contracts directly from the browser
+   - No private keys required - transactions signed by your wallet
+   - Choose from contract templates or write your own
+   - Configure transaction fees and Clarity version
+
+3. **Contract Interactions**
+   - Call public contract functions (mint, transfer, approve, etc.)
+   - All transactions signed by your connected wallet
+   - Real-time transaction status updates
+   - Transaction history tracking
+
+4. **Transaction History**
+   - View all transactions from your connected wallet
+   - Filter by network and transaction type
+   - Direct links to Stacks Explorer
+
+#### Using WalletConnect in the App:
+
+**1. Connect Your Wallet:**
+   - Click the "Connect Wallet" button in the header
+   - Reown AppKit modal opens
+   - Select your Stacks wallet (Hiro, Xverse, etc.)
+   - Approve the connection in your wallet
+   - Your wallet address will be displayed
+
+**2. Deploy Contracts:**
+   - Navigate to the "Deploy Smart Contract" section
+   - Select a template or paste your Clarity code
+   - Enter contract name and configure settings
+   - Click "Deploy Contract"
+   - Approve the transaction in your wallet
+   - View transaction ID and explorer link
+
+**3. Interact with Contracts:**
+   - Configure contract address and name
+   - Use the "Interact with Contract" section
+   - Call functions like:
+     - **Mint Tokens** (owner only)
+     - **Transfer Tokens**
+     - **Approve Spender**
+     - **Transfer From** (with approval)
+     - **Pause/Unpause Minting** (admin)
+   - All transactions require wallet approval
+
+**4. View Transaction History:**
+   - Scroll to "Transaction History" section
+   - View all transactions from your connected wallet
+   - Click "Refresh" to update
+   - Click "View →" to open in Stacks Explorer
+
+#### Supported Wallets:
+
+Any Stacks wallet that supports WalletConnect protocol:
+- **Hiro Wallet** (mobile & extension)
+- **Xverse Wallet**
+- **Leather Wallet** (formerly Stacks Wallet)
+- Other WalletConnect-compatible Stacks wallets
+
+#### Network Support:
+
+- ✅ **Stacks Mainnet** - Full production support
+- ✅ **Stacks Testnet** - Development and testing
+
+Switch networks using the network selector in the UI. Your wallet will be prompted to switch networks when needed.
+
+#### Security Notes:
+
+- **No Private Keys**: Private keys never leave your wallet
+- **User Approval**: All transactions require explicit approval in your wallet
+- **Secure Protocol**: Uses WalletConnect's secure protocol for communication
+- **Local Storage**: Only connection state is stored locally (no sensitive data)
+
+#### Code Examples:
+
+**Using the `useWallet` hook:**
+```typescript
+import { useWallet } from "./components/WalletConnect";
+
+function MyComponent() {
+  const { address, isConnected, connect, disconnect } = useWallet();
+  
+  return (
+    <div>
+      {isConnected ? (
+        <div>
+          <p>Connected: {address}</p>
+          <button onClick={disconnect}>Disconnect</button>
+        </div>
+      ) : (
+        <button onClick={connect}>Connect Wallet</button>
+      )}
+    </div>
+  );
+}
+```
+
+**Deploying a contract:**
+```typescript
+import { useContractDeploy } from "./hooks/useContractDeploy";
+
+function DeployComponent() {
+  const { deploy, isDeploying, lastTxId } = useContractDeploy();
+  
+  const handleDeploy = async () => {
+    const txId = await deploy({
+      contractName: "my-contract",
+      contractSource: "(define-public (hello) (ok \"world\"))",
+      network: "testnet",
+      fee: 150000,
+    });
+    console.log("Deployed:", txId);
+  };
+  
+  return <button onClick={handleDeploy} disabled={isDeploying}>
+    {isDeploying ? "Deploying..." : "Deploy"}
+  </button>;
+}
+```
+
+**Calling contract functions:**
+```typescript
+import { useContractCall } from "./hooks/useContractCall";
+import { uintCV, standardPrincipalCV } from "@stacks/transactions";
+
+function InteractComponent() {
+  const { call, isCalling } = useContractCall();
+  
+  const handleMint = async () => {
+    await call({
+      contractAddress: "ST...",
+      contractName: "token-contract",
+      functionName: "mint",
+      functionArgs: [uintCV(1000000), standardPrincipalCV("ST...")],
+      network: "testnet",
+    });
+  };
+  
+  return <button onClick={handleMint} disabled={isCalling}>
+    Mint Tokens
+  </button>;
+}
+```
+
+For more details, see [REOWN_APPKIT_INTEGRATION.md](./REOWN_APPKIT_INTEGRATION.md).
 
 ---
 
