@@ -8,6 +8,7 @@ import TransactionList from '../components/transactions/TransactionList';
 import TransactionFilter from '../components/transactions/TransactionFilter';
 import TransactionStats from '../components/transactions/TransactionStats';
 import { TransactionFilter as TxFilter } from '../types/transaction';
+import { exportTransactionsToCSV, exportTransactionsToJSON } from '../utils/transactionExport';
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -60,6 +61,18 @@ const TransactionsPage: React.FC = () => {
   const handleLoadMore = () => {
     if (isConnected && address && hasMore && !loading) {
       loadTransactions(address, false, currentFilter);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (transactions.length > 0) {
+      exportTransactionsToCSV(transactions);
+    }
+  };
+
+  const handleExportJSON = () => {
+    if (transactions.length > 0) {
+      exportTransactionsToJSON(transactions);
     }
   };
 
@@ -164,6 +177,38 @@ const TransactionsPage: React.FC = () => {
 
           <section className="panel">
             <TransactionFilter onFilterChange={handleFilterChange} loading={loading} />
+            
+            {transactions.length > 0 && (
+              <div className="export-actions" style={{ marginBottom: '1rem' }}>
+                <button 
+                  onClick={handleExportCSV}
+                  style={{ 
+                    padding: '0.5rem 1rem', 
+                    marginRight: '0.5rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Export CSV
+                </button>
+                <button 
+                  onClick={handleExportJSON}
+                  style={{ 
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Export JSON
+                </button>
+              </div>
+            )}
             
             {error && (
               <div className="error" style={{ marginBottom: '1rem' }}>
