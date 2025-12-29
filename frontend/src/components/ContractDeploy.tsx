@@ -23,6 +23,7 @@ import {
   getRecommendedFee,
   formatFee 
 } from "../utils/contract.utils";
+import { contractTemplates, getTemplate } from "../data/contractTemplates";
 
 interface ContractDeployProps {
   network: NetworkKey;
@@ -37,6 +38,15 @@ export function ContractDeploy({ network }: ContractDeployProps) {
   const [fee, setFee] = useState(() => getRecommendedFee(network).toString());
   const [clarityVersion, setClarityVersion] = useState<ClarityVersion>(ClarityVersion.Clarity4);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+
+  const handleTemplateSelect = useCallback((templateId: string) => {
+    const template = getTemplate(templateId);
+    if (template) {
+      setContractSource(template.source);
+      setSelectedTemplate(templateId);
+    }
+  }, []);
 
   // Update fee when network changes
   const updateFeeForNetwork = useCallback(() => {
