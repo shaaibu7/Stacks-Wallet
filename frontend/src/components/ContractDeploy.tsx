@@ -31,6 +31,14 @@ export function ContractDeploy({ network }: ContractDeployProps) {
   const [contractSource, setContractSource] = useState("");
   const [fee, setFee] = useState("150000");
   const [clarityVersion, setClarityVersion] = useState<ClarityVersion>(ClarityVersion.Clarity4);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  // Validate contract name on change
+  const handleNameChange = useCallback((value: string) => {
+    setContractName(value);
+    const validation = validateContractName(value);
+    setNameError(validation.valid ? null : validation.error || null);
+  }, []);
 
   const handleDeploy = useCallback(async () => {
     // Validate contract name
@@ -88,11 +96,16 @@ export function ContractDeploy({ network }: ContractDeployProps) {
           <input
             type="text"
             value={contractName}
-            onChange={(e) => setContractName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
             placeholder="my-contract"
             disabled={isDeploying}
             style={{ width: "100%", marginTop: "0.5rem", padding: "0.5rem" }}
           />
+          {nameError && (
+            <div style={{ color: "#ff6b6b", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+              {nameError}
+            </div>
+          )}
         </label>
       </div>
 
@@ -174,7 +187,7 @@ export function ContractDeploy({ network }: ContractDeployProps) {
 
       <button
         onClick={handleDeploy}
-        disabled={isDeploying || !contractName.trim() || !contractSource.trim()}
+        disabled={isDeploying || !contractName.trim() || !contractSource.trim() || !!nameError}
         style={{ 
           marginTop: "1rem", 
           padding: "0.75rem 1.5rem",
@@ -192,4 +205,3 @@ export function ContractDeploy({ network }: ContractDeployProps) {
     </div>
   );
 }
-
