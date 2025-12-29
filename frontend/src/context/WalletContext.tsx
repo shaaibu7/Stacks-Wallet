@@ -1,35 +1,93 @@
-/**
- * Wallet Context Provider
- * Provides wallet state to all child components via React Context
- */
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { useAppKitAccount } from '@reown/appkit/react'
+import { isStacksWalletConnected, getStacksUserData } from '../config/stacks'
 
-import { createContext, useContext, ReactNode } from "react";
-import { useWallet } from "../components/WalletConnect";
-import type { UseWalletReturn } from "../types/wallet";
+interface StacksWalletData {
+    isConnected: boolean
+    address?: string
+    userData?: any
+}
 
-interface WalletContextValue extends UseWalletReturn {}
+interface WalletContextType {
+    // EVM Wallet (via AppKit)
+    evmWallet: {
+        isConnected: boolean
+        address?: string
+    }
+    
+    // Stacks Wallet
+    stacksWallet: StacksWalletData
+    
+    // Combined status
+    isAnyWalletConnected: boolean
+    isBothWalletsConnected: boolean
+    
+    // Actions
+    refreshWalletStatus: () => void
+}
 
-const WalletContext = createContext<WalletContextValue | undefined>(undefined);
+const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 interface WalletProviderProps {
-  children: ReactNode;
+    children: ReactNode
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const wallet = useWallet();
+    const { isConnected: evmConnected, address: evmAddress } = useAppKitAccount()
+    const [stacksWallet, setStacksWallet] = useState<StacksWalletData>({ isConnected: false })
 
-  return (
-    <WalletContext.Provider value={wallet}>
-      {children}
-    </WalletContext.Provider>
-  );
+    const refreshWalletStatus = () => {
+        const stacksConnected = isStacksWalletConnected()
+        if (stacksConnected) {
+            const userData = getStacksUserData()
+            setStacksWallet({
+                isConnected: true,
+                address: userData?.profile?.stxAddress?.testnet,
+                userData
+            })
+        } else {
+            setStacksWallet({ isConnected: false })
+        }
+    }
+
+    useEffect(() => {
+        refreshWalletStatus()
+        
+        // Listen for wallet connection changes
+        const handleFocus = () => refreshWalletStatus()
+        const handleStorage = () => refreshWalletStatus()
+        
+        window.addEventListener('focus', handleFocus)
+        window.addEventListener('storage', handleStorage)
+        
+        return () => {
+            window.removeEventListener('focus', handleFocus)
+            window.removeEventListener('storage', handleStorage)
+        }
+    }, [])
+
+    const contextValue: WalletContextType = {
+        evmWallet: {
+            isConnected: evmConnected,
+            address: evmAddress
+        },
+        stacksWallet,
+        isAnyWalletConnected: evmConnected || stacksWallet.isConnected,
+        isBothWalletsConnected: evmConnected && stacksWallet.isConnected,
+        refreshWalletStatus
+    }
+
+    return (
+        <WalletContext.Provider value={contextValue}>
+            {children}
+        </WalletContext.Provider>
+    )
 }
 
-export function useWalletContext(): WalletContextValue {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error("useWalletContext must be used within WalletProvider");
-  }
-  return context;
+export function useWallet() {
+    const context = useContext(WalletContext)
+    if (context === undefined) {
+        throw new Error('useWallet must be used within a WalletProvider')
+    }
+    return context
 }
-
