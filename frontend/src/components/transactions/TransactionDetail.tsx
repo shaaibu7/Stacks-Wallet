@@ -1,5 +1,6 @@
 import React from 'react';
 import { Transaction } from '../../types/transaction';
+import './transactions.css';
 
 interface TransactionDetailProps {
   transaction: Transaction | null;

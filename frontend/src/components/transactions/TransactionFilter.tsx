@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TransactionFilter } from '../../types/transaction';
+import './transactions.css';
 
 interface TransactionFilterProps {
   onFilterChange: (filter: TransactionFilter) => void;
