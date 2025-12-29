@@ -5,6 +5,7 @@ import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import { useWallet } from "./components/WalletConnect";
 import { formatAddress } from "./utils/wallet.utils";
 import { ContractDeploy } from "./components/ContractDeploy";
+import { ContractInteract } from "./components/ContractInteract";
 
 type NetworkKey = "mainnet" | "testnet";
 
@@ -370,6 +371,16 @@ function App() {
       <section className="panel">
         <ContractDeploy network={network} />
       </section>
+
+      {contractAddress && contractName && (
+        <section className="panel">
+          <ContractInteract
+            contractAddress={contractAddress}
+            contractName={contractName}
+            network={network}
+          />
+        </section>
+      )}
     </div>
   );
 }
