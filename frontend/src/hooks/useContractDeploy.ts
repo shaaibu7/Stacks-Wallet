@@ -97,6 +97,14 @@ export function useContractDeploy(): UseContractDeployReturn {
     setError(null);
     setLastTxId(null);
 
+    console.log("🚀 Starting contract deployment:", {
+      contractName,
+      network: networkKey,
+      fee,
+      clarityVersion,
+      sourceLength: contractSource.length,
+    });
+
     try {
       // Build network
       const baseNetwork = networkKey === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
@@ -169,6 +177,13 @@ export function useContractDeploy(): UseContractDeployReturn {
       const txId = broadcastResponse.txid;
       setLastTxId(txId);
       setIsDeploying(false);
+      
+      console.log("✅ Contract deployed successfully:", {
+        txId,
+        contractName,
+        network: networkKey,
+        explorerUrl: `https://explorer.hiro.so/txid/${txId}?chain=${networkKey}`,
+      });
       
       return txId;
     } catch (err) {
