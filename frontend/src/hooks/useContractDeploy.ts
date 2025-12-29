@@ -30,19 +30,35 @@ import { appKit } from "../lib/appkit.instance";
 import type { WalletError } from "../types/wallet";
 import { createWalletError, extractErrorMessage, isUserRejection } from "../utils/wallet.utils";
 
+/**
+ * Parameters for deploying a contract
+ */
 export interface DeployContractParams {
+  /** Name of the contract (must be valid Clarity identifier) */
   contractName: string;
+  /** Full Clarity source code for the contract */
   contractSource: string;
+  /** Target network for deployment */
   network: "mainnet" | "testnet";
+  /** Transaction fee in micro-STX (default: 150000 = 0.15 STX) */
   fee?: number;
+  /** Clarity version to use (default: Clarity4) */
   clarityVersion?: ClarityVersion;
 }
 
+/**
+ * Return type for useContractDeploy hook
+ */
 export interface UseContractDeployReturn {
+  /** Function to deploy a contract */
   deploy: (params: DeployContractParams) => Promise<string | null>;
+  /** Whether a deployment is currently in progress */
   isDeploying: boolean;
+  /** Current error state, if any */
   error: WalletError | null;
+  /** Clear the current error */
   clearError: () => void;
+  /** Transaction ID of the last successful deployment */
   lastTxId: string | null;
 }
 
