@@ -11,7 +11,6 @@ import { ConfigurationPanel } from "./components/ConfigurationPanel";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { ActivityPanel } from "./components/ActivityPanel";
 import { WalletHeader } from "./components/WalletHeader";
-import type { NetworkKey } from "./types/wallet";
 
 const DEFAULT_CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
 const DEFAULT_CONTRACT_NAME = import.meta.env.VITE_CONTRACT_NAME ?? "token-contract";
