@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { PlatformWallet, PlatformAdminService } from '../../services/platformAdminService'
+import { WalletDetailModal } from './WalletDetailModal'
 
 interface PlatformWalletRegistryProps {
   onWalletSelect?: (wallet: PlatformWallet) => void
@@ -18,6 +19,7 @@ export function PlatformWalletRegistry({ onWalletSelect, className = '' }: Platf
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [selectedWallet, setSelectedWallet] = useState<PlatformWallet | null>(null)
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -222,7 +224,11 @@ export function PlatformWalletRegistry({ onWalletSelect, className = '' }: Platf
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedWallet(wallet)}
+                      >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -267,6 +273,14 @@ export function PlatformWalletRegistry({ onWalletSelect, className = '' }: Platf
           )}
         </CardContent>
       </Card>
+
+      {/* Wallet Detail Modal */}
+      {selectedWallet && (
+        <WalletDetailModal
+          wallet={selectedWallet}
+          onClose={() => setSelectedWallet(null)}
+        />
+      )}
     </div>
   )
 }
