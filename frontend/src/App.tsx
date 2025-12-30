@@ -1,177 +1,38 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import "./App.css";
-import { cvToJSON, fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions";
-import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import { useWallet } from "./components/WalletConnect";
-import { formatAddress } from "./utils/wallet.utils";
+import { useNetwork } from "./hooks/useNetwork";
+import { useTokenInfo } from "./hooks/useTokenInfo";
+import { useActivity } from "./hooks/useActivity";
 import { ContractDeploy } from "./components/ContractDeploy";
 import { ContractInteract } from "./components/ContractInteract";
 import { TransactionHistory } from "./components/TransactionHistory";
+import { ConfigurationPanel } from "./components/ConfigurationPanel";
+import { ResultsPanel } from "./components/ResultsPanel";
+import { ActivityPanel } from "./components/ActivityPanel";
+import { WalletHeader } from "./components/WalletHeader";
+import type { NetworkKey } from "./types/wallet";
 
-type NetworkKey = "mainnet" | "testnet";
-
-const DEFAULT_NETWORK: NetworkKey =
-  (import.meta.env.VITE_STACKS_NETWORK as NetworkKey) === "mainnet" ? "mainnet" : "testnet";
 const DEFAULT_CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
 const DEFAULT_CONTRACT_NAME = import.meta.env.VITE_CONTRACT_NAME ?? "token-contract";
-
-function buildNetwork(network: NetworkKey) {
-  const overrideUrl = import.meta.env.VITE_STACKS_API_URL as string | undefined;
-  const base = network === "mainnet" ? STACKS_MAINNET : STACKS_TESTNET;
-  return createNetwork({
-    network: base,
-    client: { baseUrl: overrideUrl ?? base.client.baseUrl },
-  });
-}
-
-function extractOk(value: any) {
-  if (value?.type === "response" && value.success) {
-    return value.value;
-  }
-  if (value?.type === "response") {
-    throw new Error(`Contract error: ${JSON.stringify(value.value)}`);
-  }
-  return value;
-}
-
-function formatUint(cv: any): bigint {
-  if (cv?.type === "uint" && cv.value !== undefined) return BigInt(cv.value);
-  throw new Error("Unexpected uint value");
-}
-
-function formatString(cv: any): string {
-  if ((cv?.type === "string-ascii" || cv?.type === "string-utf8") && cv.value !== undefined) {
-    return String(cv.value);
-  }
-  throw new Error("Unexpected string value");
-}
+const HOOKS_SERVER_URL = import.meta.env.VITE_HOOKS_SERVER_URL as string | undefined;
 
 function App() {
   const { address, isConnected, isConnecting, error: walletError, connect, disconnect, clearError } = useWallet();
-  const [network, setNetwork] = useState<NetworkKey>(DEFAULT_NETWORK);
+  const { network, setNetwork, stacksNetwork, apiBaseUrl } = useNetwork();
   const [contractAddress, setContractAddress] = useState(DEFAULT_CONTRACT_ADDRESS);
   const [contractName, setContractName] = useState(DEFAULT_CONTRACT_NAME);
   const [principal, setPrincipal] = useState("");
 
-  const [tokenName, setTokenName] = useState<string | null>(null);
-  const [totalSupply, setTotalSupply] = useState<bigint | null>(null);
-  const [balance, setBalance] = useState<bigint | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activity, setActivity] = useState<any[]>([]);
-  const [activityLoading, setActivityLoading] = useState(false);
+  const tokenInfo = useTokenInfo(contractAddress, contractName, network, stacksNetwork);
+  const activity = useActivity(network);
 
-  const stacksNetwork = useMemo(() => buildNetwork(network), [network]);
-  const apiBaseUrl = stacksNetwork.client.baseUrl;
-
-  const ensureContract = () => {
-    if (!contractAddress || !contractName) {
-      throw new Error("Contract address and name are required");
-    }
-  };
-
-  const readTokenName = async () => {
-    ensureContract();
-    const clarityValue = await fetchCallReadOnlyFunction({
-      contractAddress,
-      contractName,
-      functionName: "get-name",
-      functionArgs: [],
-      senderAddress: contractAddress,
-      network: stacksNetwork,
-    });
-    const json = cvToJSON(clarityValue) as any;
-    const ok = extractOk(json);
-    setTokenName(formatString(ok));
-  };
-
-  const readTotalSupply = async () => {
-    ensureContract();
-    const clarityValue = await fetchCallReadOnlyFunction({
-      contractAddress,
-      contractName,
-      functionName: "get-total-supply",
-      functionArgs: [],
-      senderAddress: contractAddress,
-      network: stacksNetwork,
-    });
-    const json = cvToJSON(clarityValue) as any;
-    const ok = extractOk(json);
-    setTotalSupply(formatUint(ok));
-  };
-
-  const readBalance = async () => {
-    ensureContract();
-    if (!principal) throw new Error("Enter a principal to query its balance");
-    const clarityValue = await fetchCallReadOnlyFunction({
-      contractAddress,
-      contractName,
-      functionName: "get-balance",
-      functionArgs: [standardPrincipalCV(principal)],
-      senderAddress: contractAddress,
-      network: stacksNetwork,
-    });
-    const json = cvToJSON(clarityValue) as any;
-    const ok = extractOk(json);
-    setBalance(formatUint(ok));
-  };
-
-  const loadTokenInfo = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await Promise.all([readTokenName(), readTotalSupply()]);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.message ?? "Failed to load token info");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadBalance = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await readBalance();
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.message ?? "Failed to load balance");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const clearResults = () => {
-    setTokenName(null);
-    setTotalSupply(null);
-    setBalance(null);
-    setError(null);
-  };
-
-  const hooksServerUrl = import.meta.env.VITE_HOOKS_SERVER_URL as string | undefined;
-
-  const loadActivity = async () => {
-    if (!hooksServerUrl) {
-      setError("VITE_HOOKS_SERVER_URL not configured in .env");
+  const handleLoadBalance = () => {
+    if (!principal) {
+      tokenInfo.error = "Enter a principal to query its balance";
       return;
     }
-    try {
-      setActivityLoading(true);
-      setError(null);
-      const url = new URL(`${hooksServerUrl}/activity`);
-      url.searchParams.set("limit", "20");
-      url.searchParams.set("network", network);
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error(`Activity API error: ${res.statusText}`);
-      const data = await res.json();
-      setActivity(data.items || []);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.message ?? "Failed to load activity");
-    } finally {
-      setActivityLoading(false);
-    }
+    tokenInfo.loadBalance(principal);
   };
 
   return (
